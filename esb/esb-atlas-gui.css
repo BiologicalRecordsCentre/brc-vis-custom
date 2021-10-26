@@ -1,0 +1,15 @@
+#brc-vis-content .btn-primary {
+  background-color: #EF9766;
+}
+
+#brc-vis-content .btn-primary.active {
+  background-color: #C47B54;
+}
+
+#brc-vis-content .esb-control {
+  margin-top: 1em;
+}
+
+#esb-atlas-info {
+  font-size: 0.8em;
+}
