@@ -27,16 +27,16 @@
     var $panels = $('<div style="display: flex; flex-wrap: wrap">').appendTo($main)
     var $panelLeft = $('<div style="flex: 1;">').appendTo($panels)
     //var $panelMiddle = $('<div style="flex: 0.5; min-width: 300px; margin-left: 10px">').appendTo($panels)
-    var $panelRight = $('<div style="flex: 2; min-width: 300px; margin-left: 10px">').appendTo($panels)
+    var $panelRight = $('<div style="flex: 2; margin-left: 10px">').appendTo($panels)
 
     var $panelRightTop = $('<div style="display: flex; flex-wrap: wrap">').appendTo($panelRight)
     var $panelRightBottom = $('<div style="display: flex; flex-wrap: wrap">').appendTo($panelRight)
 
-    var $panelRightTop1 = $('<div style="flex: 1;">').appendTo($panelRightTop)
-    var $panelRightTop2 = $('<div style="flex: 1;">').appendTo($panelRightTop)
+    var $panelRightTop1 = $('<div style="flex: 1; min-width: 300px;">').appendTo($panelRightTop)
+    var $panelRightTop2 = $('<div style="flex: 1; min-width: 300px;">').appendTo($panelRightTop)
 
-    var $panelRightBottom1 = $('<div style="flex: 1;">').appendTo($panelRightBottom)
-    var $panelRightBottom2 = $('<div style="flex: 1;">').appendTo($panelRightBottom)
+    var $panelRightBottom1 = $('<div style="flex: 1; min-width: 300px;">').appendTo($panelRightBottom)
+    var $panelRightBottom2 = $('<div style="flex: 1; min-width: 300px;">').appendTo($panelRightBottom)
 
 
     // GUI Taxon control
@@ -64,7 +64,8 @@
         'hectad': getHectads,
         'hectad-colour': getHectadsColour
       },
-      transOptsKey: 'BI4'
+      transOptsKey: 'BI4',
+      expand: true
     })
 
     // GUI Map controls
@@ -97,7 +98,7 @@
       height: 200,
       headPad: 35,
       perRow: 1,
-      //expand: true,
+      expand: true,
       showTaxonLabel: false
     })
 
@@ -117,7 +118,7 @@
       headPad: 35,
       margin: {left: 35, bottom: 10, top: 6},
       perRow: 1,
-      //expand: true,
+      expand: true,
       showTaxonLabel: false,
       showLegend: true
     })
@@ -154,7 +155,7 @@
           colour: '#FF0000',
         }
       ],
-      //expand: true,
+      expand: true,
       legendSwatchSize: 15,
       legendWidth: 125,
       legendSwatchGap: 5,
@@ -200,7 +201,7 @@
           colour: '#FF0000',
         },
       ],
-      //expand: true,
+      expand: true,
       legendSwatchSize: 15,
       legendWidth: 125,
       legendSwatchGap: 5,
