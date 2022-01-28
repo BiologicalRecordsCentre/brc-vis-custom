@@ -300,28 +300,68 @@
 
   fns.hectadOverview = function(id, config) {
 
-    var $div = $('<div style="margin: 0 10px 10px 10px"></div>').appendTo($('#' + id))
+    var $div = $('<div></div>').appendTo($('#' + id))
 
     // Controls
-    var $controls = $('<div style="margin-bottom: 0.5em"></div>').appendTo($div)
+    var $controls = $('<div class="col-md-4"></div>').appendTo($div)
+    $('<h4>Filters</h4>').appendTo($controls)
+
     // Taxon select control
-    var $selTaxon = $('<select></select>').appendTo($controls)
-    $('<option value="">All species</option>').appendTo($selTaxon)
+    var $row1 = $('<div class="form-group input-group"></div>').appendTo($controls)
+    $('<span class="input-group-addon">Species</span>').appendTo($row1)
+    var $selTaxon = $('<select class="form-control"></select>').appendTo($row1)
+    $('<option value="">All</option>').appendTo($selTaxon)
     taxa.forEach(function(t){
       $('<option value="' + t.preferred_taxon + '">' + t.default_common_name + '</option>').appendTo($selTaxon)
     })
+    $selTaxon.attr('title', 'Filter by species')
     $selTaxon.click(selectionChanged)
-    // Year select control
-    var $selYear = $('<select style="margin-left: 0.5em"></select>').appendTo($controls)
-    $('<option value="">All years</option>').appendTo($selYear)
-    for (var y = Number(new Date().getFullYear()); y >= 1970; y--) {
-      $('<option value="' + y + '">' + y + '</option>').appendTo($selYear)
-    }
-    $selYear.click(selectionChanged)
-   
 
+    // Year select control
+    var $row2 = $('<div class="row"></div>').appendTo($controls)
+    var $row2col1 = $('<div class="col-md-6"></div>').appendTo($row2)
+    var $row2col2 = $('<div class="col-md-6"></div>').appendTo($row2)
+
+    var $row2col1Grp = $('<div class="input-group"></div>').appendTo($row2col1)
+    var $row2col2Grp = $('<div class="input-group"></div>').appendTo($row2col2)
+
+    $('<span class="input-group-addon">From</span>').appendTo($row2col1Grp)
+    var $selStartYear = $('<select class="form-group form-control"></select>').appendTo($row2col1Grp)
+    for (var y = Number(new Date().getFullYear()); y >= 1970; y--) {
+      var selected = y === 1970 ? 'selected' : ''
+      $('<option value="' + y + '" ' + selected + ' >' + y + '</option>').appendTo($selStartYear)
+    }
+    $selStartYear.click(selectionChanged)
+
+    $('<span class="input-group-addon">To</span>').appendTo($row2col2Grp)
+    var $selEndYear = $('<select class="form-group form-control"></select>').appendTo($row2col2Grp)
+    for (var y = Number(new Date().getFullYear()); y >= 1970; y--) {
+      $('<option value="' + y + '">' + y + '</option>').appendTo($selEndYear)
+    }
+    $selEndYear.click(selectionChanged)
+
+    //$selStartYear.prop('disabled', true)
+    //$selEndYear.prop('disabled', true)
+    
+    // Clear filter button
+    var $row3 = $('<div class="form-group" style="margin-top: 1em"></div>').appendTo($controls)
+    var $clearFilters = $('<button class="form-control btn btn-default">Reset all filters</select>').appendTo($row3)
+    $clearFilters.click(function(){
+      $selTaxon.val('')
+      $selStartYear.val(1970)
+      $selEndYear.val(Number(new Date().getFullYear()))
+      selectionChanged()
+    })
+
+    // Info
+    $('<hr/>').appendTo($controls)
+    $('<h4>Stats</h4>').appendTo($controls)
+    $('<div>Number of butterflies: <b><span id="total_butterfly_count"></span></b></div>').appendTo($controls)
+    
+    $('<div>Number of 10 km squares: <b><span id="total_hectad_count"></span></b></div>').appendTo($controls)
+   
     // Map
-    $('<div id="' + id + '-chart-div" style="max-width: 500px"></div>').appendTo($div)
+    $('<div id="' + id + '-chart-div" style="max-width: 500px" class="col-md-8"></div>').appendTo($div)
     var brcmap = brcatlas.svgMap({
       selector: '#' + id + '-chart-div',
       legendOpts: {display: true,
@@ -356,17 +396,18 @@
     function esQuery() {
 
       var taxon = $selTaxon.val()
-      var year = $selYear.val()
+      var startYear = $selStartYear.val()
+      var endYear = $selEndYear.val()
+
+      console.log('start', startYear, 'end', endYear)
 
       var filters = [
         {"query_type": "match_phrase","field": "metadata.survey.id","value": 431},
-        {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"}
+        {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"},
+        {"query_type": "query_string","field": "event.year","value": "[" + startYear + " TO " + endYear + "]"}
       ]
       if (taxon) {
         filters.push({"query_type": "match_phrase","field": "taxon.accepted_name","value": taxon})
-      }
-      if (year) {
-        filters.push({"query_type": "match_phrase","field": "event.year","value": year})
       }
 
       indiciaData.esSources.push({
@@ -418,6 +459,10 @@
       }, [])
 
       brcmap.redrawMap()
+
+      $('#total_hectad_count').text(hectadData.length)
+      $('#total_butterfly_count').text(hectadData.reduce(function(a,h){return a + h.recs}, 0))
+      
       // busy.map = false
       // setBusy()
     }
