@@ -1,14 +1,23 @@
-(function($) {
+(function($, fns, data, config) {
 
-  console.log("PoMS library loaded")
+  // Updated 23/02/2022 to work with both content type and blocks
+  // console.log("PoMS library loaded")
+
+  var idg
+  
+  fns.pomsBlock = function(id) {
+    // set global idg variable
+    idg = id
+  }
 
   $(document).ready(function () {
-    console.log("Generate PoMS chart")
-    console.log("data", drupalSettings)
-    var repdataAll = JSON.parse(drupalSettings.brc_vis.data)
-    //pomsSelectFlower(repdataAll['poms-donuts-1'] ,'#brc-vis-content')
+
+    var chartid = idg ? idg : 'brc-vis-content'
+    var chartdata = idg ? data[idg] : data
+    var repdataAll = JSON.parse(chartdata)
+
     // Call pomsSelectFlower using the first named report
-    pomsSelectFlower(repdataAll[Object.keys(repdataAll)[0]] ,'#brc-vis-content')
+    pomsSelectFlower(repdataAll[Object.keys(repdataAll)[0]] ,'#' + chartid)
   })
   
   // Declare stuff useful to more than one data formatting function
@@ -143,7 +152,10 @@
   ]
 
   function getConfigOpt(opt, defaultVal) {
-    return drupalSettings.brc_vis.config[opt] ? drupalSettings.brc_vis.config[opt] : defaultVal
+    
+    var chartConfig = idg ? config[idg] : config
+    //return drupalSettings.brc_vis.config[opt] ? drupalSettings.brc_vis.config[opt] : defaultVal
+    return chartConfig[opt] ? chartConfig[opt] : defaultVal
   }
 
   function formatDataBySample(repdata) {
@@ -270,7 +282,7 @@
     var samples = chartData.samples
     var mean = Math.round(chartData.data.reduce((total, cd) => total + cd.number, 0))
 
-    var html = drupalSettings.brc_vis.config.titleTemplate
+    var html = getConfigOpt('titleTemplate', '')
 
     html = html ? html : 'No title specified with <b>titleTemplate</b> option.'
     html = html.replace('##plant##', flower)
@@ -384,4 +396,4 @@
       expand: true
     })
   }
-})(jQuery)
+})(jQuery, drupalSettings.brc_vis.fns, drupalSettings.brc_vis.data, drupalSettings.brc_vis.config)

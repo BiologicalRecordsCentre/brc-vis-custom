@@ -13,3 +13,7 @@
 #esb-atlas-info {
   font-size: 0.8em;
 }
+
+.btn-group label.btn {
+  width: auto;
+}
