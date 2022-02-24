@@ -19,11 +19,8 @@
     brcmap.redrawMap()
 
     function hectads(identifier) {
-      console.log('access called')
       return dots(identifier, 10000)
     }
-
-    console.log('config', config)
 
     function dots(identifier, precision) {
       return new Promise(function (resolve, reject) {

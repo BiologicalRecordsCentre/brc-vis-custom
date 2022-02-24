@@ -16,6 +16,8 @@
     var chartdata = idg ? data[idg] : data
     var repdataAll = JSON.parse(chartdata)
 
+    console.log(repdataAll)
+
     // Call pomsSelectFlower using the first named report
     pomsSelectFlower(repdataAll[Object.keys(repdataAll)[0]] ,'#' + chartid)
   })

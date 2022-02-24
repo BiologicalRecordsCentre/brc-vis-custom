@@ -79,17 +79,18 @@
           source: source,
           functionName: id,
         })
-      } else {
-        // If not required, then remove any ES output classes
-        // already added otherwise hooking up
-        // the data sources in the BRC vis module JS fails.
-        $cs.removeClass('idc-output')
-        $cs.removeClass('idc-output-customScript')
-      }  
+      }
     })
 
     // Indicia callback
     indiciaFns[id]  = function (el, sourceSettings, response) {
+
+      // Remove any ES output classes otherwise when taxon
+      // selector action buttons cause other JS code to execute
+      // ES queries, but not this one, then these classes will
+      // mess up the hooking up of those data sources.
+      $cs.removeClass('idc-output')
+      $cs.removeClass('idc-output-customScript')
 
       var data1 = [
         {
