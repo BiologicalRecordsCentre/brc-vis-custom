@@ -16,12 +16,12 @@
       taxa: ['taxon'],
       minYear: 1990,
       maxYear: 2021,
-      width: 290,
+      width: 310,
       height: 200,
       headPad: 35,
-      margin: {left: 35, bottom: 10, top: 6},
+      margin: {left: 35, bottom: 10, top: 25},
       perRow: 1,
-      expand: true,
+      //expand: true,
       showTaxonLabel: false,
       showLegend: true
     })

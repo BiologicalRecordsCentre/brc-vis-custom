@@ -120,31 +120,31 @@
         {
           name: "Accepted",
           colour: '#008000',
-          image: 'libraries/brcvis/irecord/images/accepted.png',
+          image: 'libraries/brcvis/test/images/accepted.png',
           number: 0
         },
         {
           name: "Considered correct",
           colour: '#00800088',
-          image: 'libraries/brcvis/irecord/images/considered-correct.png',
+          image: 'libraries/brcvis/test/images/considered-correct.png',
           number: 0
         },
         {
           name: "Plausible",
           colour: '#FFA500',
-          image: 'libraries/brcvis/irecord/images/plausible.png',
+          image: 'libraries/brcvis/test/images/plausible.png',
           number: 0
         },
         {
           name: "Unable to verify",
           colour: '#FF000088',
-          image: 'libraries/brcvis/irecord/images/unable-to-verify.png',
+          image: 'libraries/brcvis/test/images/unable-to-verify.png',
           number: 0
         },
         {
           name: "Incorrect",
           colour: '#FF0000',
-          image: 'libraries/brcvis/irecord/images/incorrect.png',
+          image: 'libraries/brcvis/test/images/incorrect.png',
           number: 0
         },
       ]

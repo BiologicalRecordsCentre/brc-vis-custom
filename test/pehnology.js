@@ -14,11 +14,11 @@
       data: [],
       taxa: ['taxon'],
       metrics: [{ prop: 'n', label: 'Records per week', colour: 'blue' }],
-      width: 290,
+      width: 310,
       height: 200,
       headPad: 35,
       perRow: 1,
-      expand: true,
+      //expand: true,
       showTaxonLabel: false
     })
 

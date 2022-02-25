@@ -97,7 +97,7 @@
           name: "Accepted",
           number: 0,
           colour: '#008000',
-          image: 'libraries/brcvis/irecord/images/considered-correct.png',
+          image: 'libraries/brcvis/test/images/considered-correct.png',
         },
         {
           name: "Not reviewed",
@@ -108,7 +108,7 @@
           name: "Not accepted",
           number: 0,
           colour: '#FF0000',
-          image: 'libraries/brcvis/irecord/images/incorrect.png',
+          image: 'libraries/brcvis/test/images/incorrect.png',
         }
       ]
       response.aggregations._rows.buckets.forEach(function(v) {
