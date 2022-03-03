@@ -1,0 +1,8 @@
+.xblock {
+  margin: 0 1em 1em 0; 
+}
+
+/* Required because Drupal or Theme resets SVG overflow */
+.brc-chart-pie svg {
+  overflow: visible !important;
+}
