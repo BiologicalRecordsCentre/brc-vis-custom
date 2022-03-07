@@ -1,5 +1,78 @@
 (function ($, fns, data) {
 
+  var data = [
+    {
+      set: 1,
+      name: "Accepted",
+      code: 'V',
+      number: 0,
+      colour: '#008000',
+      image: 'libraries/brcvis/irecord/images/considered-correct.png',
+    },
+    {
+      set: 1,
+      name: "Not reviewed",
+      code: 'C',
+      number: 0,
+      colour: '#FFA500',
+    },
+    {
+      set: 1,
+      name: "Not accepted",
+      code: 'R',
+      number: 0,
+      colour: '#FF0000',
+      image: 'libraries/brcvis/irecord/images/incorrect.png',
+    },
+    {
+      set: 2,
+      name: "Correct",
+      code: 1,
+      colour: '#008000',
+      image: 'libraries/brcvis/irecord/images/accepted.png',
+      number: 0
+    },
+    {
+      set: 2,
+      name: "Considered correct",
+      code: 2,
+      colour: '#00800088',
+      image: 'libraries/brcvis/irecord/images/considered-correct.png',
+      number: 0
+    },
+    {
+      set: 2,
+      name: "No sub-status",
+      code: 0,
+      colour: 'silver',
+      number: 0
+    },
+    {
+      set: 2,
+      name: "Plausible",
+      code: 3,
+      colour: '#FFA500',
+      image: 'libraries/brcvis/irecord/images/plausible.png',
+      number: 0
+    },
+    {
+      set: 2,
+      name: "Unable to verify",
+      code: 4,
+      colour: '#FF000088',
+      image: 'libraries/brcvis/irecord/images/unable-to-verify.png',
+      number: 0
+    },
+    {
+      set: 2,
+      name: "Incorrect",
+      code: 5,
+      colour: '#FF0000',
+      image: 'libraries/brcvis/irecord/images/incorrect.png',
+      number: 0
+    },
+  ]
+
   fns.verificationCombine = function(id, config) {
 
     var $div = fns.topDivConfig(config)
@@ -9,6 +82,15 @@
     var $busy = fns.getBusy($div)
 
     $('<div id="' + id + '-chart">').appendTo($div)
+
+    // Highlight callback specified?
+    var callbackName = fns.getConfigOpt(config, 'callback', '')
+    var callbackFn = null
+    if (callbackName) {
+      if (callbacks.hasOwnProperty(callbackName)) {
+        var callbackFn = callbacks[callbackName]
+      }
+    }
 
     // Verification status chart
     var chartConfig = {
@@ -21,76 +103,14 @@
       legendTitle: 'Status',
       legendTitle2: 'Sub-status',
       legendTitleFontSize: 13,
-      data: [
-        {
-          set: 1,
-          name: "Accepted",
-          number: 0,
-          colour: '#008000',
-          image: 'libraries/brcvis/irecord/images/considered-correct.png',
-        },
-        {
-          set: 1,
-          name: "Not accepted",
-          number: 0,
-          colour: '#FF0000',
-          image: 'libraries/brcvis/irecord/images/incorrect.png',
-        },
-        {
-          set: 1,
-          name: "Not reviewed",
-          number: 0,
-          colour: '#FFA500',
-        },
-        {
-          set: 2,
-          name: "Correct",
-          colour: '#008000',
-          image: 'libraries/brcvis/irecord/images/accepted.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "Considered correct",
-          colour: '#00800088',
-          image: 'libraries/brcvis/irecord/images/considered-correct.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "Plausible",
-          colour: '#FFA500',
-          image: 'libraries/brcvis/irecord/images/plausible.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "Unable to verify",
-          colour: '#FF000088',
-          image: 'libraries/brcvis/irecord/images/unable-to-verify.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "Incorrect",
-          colour: '#FF0000',
-          image: 'libraries/brcvis/irecord/images/incorrect.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "No sub-status",
-          colour: 'silver',
-          number: 0
-        },
-      ],
+      data: data,
       expand: true,
       legendSwatchSize: 15,
       legendWidth: 125,
       legendSwatchGap: 5,
       labelFontSize: 12,
       imageWidth: 40,
-      //label: 'value'
+      callback: callbackFn ? callbackFn : function(){return}
     }
     chartConfig = {...chartConfig, ...fns.parseChartConfig(config)}
     var verification = brccharts.pie(chartConfig)
@@ -143,16 +163,18 @@
     // Indicia callback
     indiciaFns[id]  = function (el, sourceSettings, response) {
 
+      //console.log(response)
+
       // Mappings from client_helpers/VerificationHelper.php
       // Status
       // 'V' => 'Accepted',
       // 'R' => 'Not accepted',
+      // 'C' => 'Not reviewed',
       // // Deprecated.
       // 'D' => 'Query',
       // 'I' => 'In progress',
       // 'T' => 'Test record',
-      // 'C' => 'Not reviewed',
-
+      
       // Sub-status
       // ('0' - no substatus)
       // '1' => 'correct',
@@ -169,86 +191,31 @@
       $cs.removeClass('idc-output')
       $cs.removeClass('idc-output-customScript')
 
-      var data1 = [
-        {
-          set: 1,
-          name: "Accepted",
-          number: 0,
-          colour: '#008000',
-          image: 'libraries/brcvis/irecord/images/considered-correct.png',
-        },
-        {
-          set: 1,
-          name: "Not accepted",
-          number: 0,
-          colour: '#FF0000',
-          image: 'libraries/brcvis/irecord/images/incorrect.png',
-        },
-        {
-          set: 1,
-          name: "Not reviewed",
-          number: 0,
-          colour: '#FFA500',
-        },
-        {
-          set: 2,
-          name: "Correct",
-          colour: '#008000',
-          image: 'libraries/brcvis/irecord/images/accepted.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "Considered correct",
-          colour: '#00800088',
-          image: 'libraries/brcvis/irecord/images/considered-correct.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "Plausible",
-          colour: '#FFA500',
-          image: 'libraries/brcvis/irecord/images/plausible.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "Unable to verify",
-          colour: '#FF000088',
-          image: 'libraries/brcvis/irecord/images/unable-to-verify.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "Incorrect",
-          colour: '#FF0000',
-          image: 'libraries/brcvis/irecord/images/incorrect.png',
-          number: 0
-        },
-        {
-          set: 2,
-          name: "No sub-status",
-          colour: 'silver',
-          number: 0
-        },
-      ]
+      // Zero the counts
+      data.forEach(function(d) {
+        d.number = 0
+      })
 
       response.aggregations._rows.buckets.forEach(function(v) {
-        //console.log('v', v)
+
         // Status
-        var statuses = ['V', 'R']
-        var workData1 = data1.filter(function(d,i){return i<3})
-        var iStatus = statuses.indexOf(v.key['identification-verification_status'])
-        if (iStatus === -1) iStatus = 2 // Not reviewed if not V or R
-        workData1[iStatus].number += v.doc_count
+        var datum = data.find(function(d){return v.key['identification-verification_status'] === d.code})
+        if (!datum) datum = data[1] // If status not found, treat as if C (Not reviewed)
+        datum.number += v.doc_count
+
         // Sub-status
-        var workData2 = data1.filter(function(d,i){return i>=3})
-        var iSubstatus = v.key['identification-verification_substatus'] ? v.key['identification-verification_substatus']-1 : 5
-        workData2[iSubstatus].number += v.doc_count
+        var datum = data.find(function(d){return v.key['identification-verification_substatus'] === d.code})
+        datum.number += v.doc_count
       })
 
       $busy.hide()
-      verification.setChartOpts({data: data1.filter(function(v){return v.number})})
+      verification.setChartOpts({data: data.filter(function(v){return v.number})})
+    }
+  }
+  // Callbacks
+  var callbacks = {
+    verification1: function(name){
+      fns.hectadVerificationRemap(name)
     }
   }
 
