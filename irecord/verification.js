@@ -73,6 +73,8 @@
     },
   ]
 
+  var dataResponse
+
   fns.verificationCombine = function(id, config) {
 
     var $div = fns.topDivConfig(config)
@@ -80,6 +82,14 @@
 
     // Busy indicator
     var $busy = fns.getBusy($div)
+
+    // Respond to changes in associated control block
+    fns.onAcceptedOnlyChecked(function(){
+      plotChart()
+    })
+    fns.onExcludeNotAcceptedChecked(function(){
+      plotChart()
+    })
 
     $('<div id="' + id + '-chart">').appendTo($div)
 
@@ -165,6 +175,22 @@
 
       //console.log(response)
 
+      // Remove any ES output classes otherwise when taxon
+      // selector action buttons cause other JS code to execute
+      // ES queries, but not this one, then these classes will
+      // mess up the hooking up of those data sources.
+
+      $cs.removeClass('idc-output')
+      $cs.removeClass('idc-output-customScript')
+
+      dataResponse = response.aggregations._rows.buckets
+      
+      $busy.hide()
+      plotChart()
+    }
+
+    function plotChart() {
+
       // Mappings from client_helpers/VerificationHelper.php
       // Status
       // 'V' => 'Accepted',
@@ -183,20 +209,25 @@
       // '4' => 'unable to verify',
       // '5' => 'incorrect'
       
-      // Remove any ES output classes otherwise when taxon
-      // selector action buttons cause other JS code to execute
-      // ES queries, but not this one, then these classes will
-      // mess up the hooking up of those data sources.
-
-      $cs.removeClass('idc-output')
-      $cs.removeClass('idc-output-customScript')
-
       // Zero the counts
       data.forEach(function(d) {
         d.number = 0
       })
 
-      response.aggregations._rows.buckets.forEach(function(v) {
+      var dataFiltered = [...dataResponse]
+      console.log('isAcceptedOnlyChecked', fns.isAcceptedOnlyChecked(config))
+      if (fns.isAcceptedOnlyChecked(config)) {
+        dataFiltered = dataFiltered.filter(function(v){
+          return v.key['identification-verification_status'] === 'V'
+        })
+      }
+      if (fns.isExcludeNotAcceptedChecked(config)) {
+        dataFiltered = dataFiltered.filter(function(v){
+          return v.key['identification-verification_status'] !== 'R'
+        })
+      }
+
+      dataFiltered.forEach(function(v) {
 
         // Status
         var datum = data.find(function(d){return v.key['identification-verification_status'] === d.code})
@@ -208,7 +239,6 @@
         datum.number += v.doc_count
       })
 
-      $busy.hide()
       verification.setChartOpts({data: data.filter(function(v){return v.number})})
     }
   }
@@ -216,6 +246,7 @@
   var callbacks = {
     verification1: function(name){
       fns.hectadVerificationRemap(name)
+      fns.phenologyVerificationReplot(name)
     }
   }
 

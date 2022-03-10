@@ -15,7 +15,7 @@
     $cs.addClass('idc-output-customScript')
 
     var filters = [
-      {"query_type": "match_phrase","field": "metadata.survey.id","value": 431},
+      //
       {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"}
     ]
     if (loggedInUser && drupalSettings.brc_vis.indiciaUserId) {
@@ -98,7 +98,7 @@
 
 
     var filters = [
-      {"query_type": "match_phrase","field": "metadata.survey.id","value": 431},
+      //
       {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"}
     ]
     if (loggedInUser && drupalSettings.brc_vis.indiciaUserId) {
@@ -177,7 +177,7 @@
     $cs.addClass('idc-output-customScript')
 
     var filters = [
-      {"query_type": "match_phrase","field": "metadata.survey.id","value": 431},
+      //
       {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"}
     ]
     if (loggedInUser && drupalSettings.brc_vis.indiciaUserId) {
@@ -303,7 +303,7 @@
     var $div = $('<div></div>').appendTo($('#' + id))
 
     // Controls
-    var $controls = $('<div class="col-md-4"></div>').appendTo($div)
+    var $controls = $('<div class="col-md-5"></div>').appendTo($div)
     $('<h4>Filters</h4>').appendTo($controls)
 
     // Taxon select control
@@ -361,7 +361,7 @@
     $('<div>Number of 10 km squares: <b><span id="total_hectad_count"></span></b></div>').appendTo($controls)
    
     // Map
-    $('<div id="' + id + '-chart-div" style="max-width: 500px" class="col-md-8"></div>').appendTo($div)
+    $('<div id="' + id + '-chart-div" style="max-width: 500px" class="col-md-7"></div>').appendTo($div)
     var brcmap = brcatlas.svgMap({
       selector: '#' + id + '-chart-div',
       legendOpts: {display: true,
@@ -399,12 +399,10 @@
       var startYear = $selStartYear.val()
       var endYear = $selEndYear.val()
 
-      console.log('start', startYear, 'end', endYear)
-
       var filters = [
-        {"query_type": "match_phrase","field": "metadata.survey.id","value": 431},
+        //
         {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"},
-        {"query_type": "query_string","field": "event.year","value": "[" + startYear + " TO " + endYear + "]"}
+        {"query_type": "query_string","field": "event.year","value": "event.year:[" + startYear + " TO " + endYear + "]"}
       ]
       if (taxon) {
         filters.push({"query_type": "match_phrase","field": "taxon.accepted_name","value": taxon})

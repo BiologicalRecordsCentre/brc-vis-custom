@@ -1,5 +1,7 @@
 (function ($, fns, data) {
 
+  //console.log(drupalSettings.brc_vis.config)
+
   // This file creates controls, rather than visualisations. However,
   // the controls can be implemented in blocks, just as visualisations
   // can by setting the custom JS configuration option 'fn' to the
@@ -27,29 +29,36 @@
     config['top-div-style'] = ''
 
     // Call all the required controls
+    fns.yearRangeControl(id + '-ctls', config)
+    var $hr = $('<hr>').appendTo($('#' + id + '-ctls'))
+    $hr.css('margin', '5px 0')
     fns.acceptedOnlyControl(id + '-ctls', config)
     fns.excludeNotAcceptedControl(id + '-ctls', config)
-    fns.yearRangeControl(id + '-ctls', config)
+    fns.statusSubstatusRadio(id + '-ctls', config)
   }
 
   // Control - use only Accepted records
+  var onChangeAcceptedOnly = []
   fns.acceptedOnlyControl = function(id, config) {
-
-    makeCheckbox(config, id, 'accepted-only', 'Use only Accepted records')
+    makeCheckbox(config, id, 'accepted-only', 'Use only Accepted records', false, onChangeAcceptedOnly)
   }
   fns.isAcceptedOnlyChecked = function(config) {
-
     return isChecked(config, 'accepted-only')
+  }
+  fns.onAcceptedOnlyChecked = function(fn) {
+    onChangeAcceptedOnly.push(fn)
   }
 
   // Control - exclude Not accepted records
+  var onChangeExcludeNotAccepted = []
   fns.excludeNotAcceptedControl = function(id, config) {
-
-    makeCheckbox(config, id, 'exclude-not-accepted', 'Exclude Not Accepted records', true)
+    makeCheckbox(config, id, 'exclude-not-accepted', 'Exclude Not Accepted records', true, onChangeExcludeNotAccepted)
   }
   fns.isExcludeNotAcceptedChecked = function(config) {
-
     return isChecked(config, 'exclude-not-accepted')
+  }
+  fns.onExcludeNotAcceptedChecked = function(fn) {
+    onChangeExcludeNotAccepted.push(fn)
   }
 
   // Control - min/max year
@@ -96,6 +105,58 @@
     return [getValue(config, 'year-start'), getValue(config, 'year-end')]
   }
 
+  // Control - verification: status or substatus
+  var onChangeStatusSubstatusRadio = []
+  fns.statusSubstatusRadio = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+
+    $('<span>Default display level:</span>').appendTo($ctlDiv)
+    var $radOptStatus = $('<input type="radio">').appendTo($ctlDiv)
+    $radOptStatus.attr('id', id + '-def-display-status')
+    $radOptStatus.attr('name', id + '-def-display')
+    $radOptStatus.css('margin', '0 0.3em 0 0.5em')
+    $radOptStatus.css('vertical-align', 'middle')
+    $radOptStatus.attr('value', 'status')
+    $radOptStatus.attr('checked', true)
+    $radOptStatus.attr('class', 'status-substatus-rad')
+    
+    var $labelStatus = $('<label>').appendTo($ctlDiv)
+    $labelStatus.attr('for', id + '-def-display-status')
+    $labelStatus.text('Status')
+    $labelStatus.css('width', 'fit-content')
+    $labelStatus.css('vertical-align', 'baseline')
+    $labelStatus.css('font-weight', 'normal')
+
+    var $radOptSubstatus = $('<input type="radio">').appendTo($ctlDiv)
+    $radOptSubstatus.attr('id', id + '-def-display-substatus')
+    $radOptSubstatus.attr('name', id + '-def-display')
+    $radOptSubstatus.css('margin', '0 0.3em 0 0.5em')
+    $radOptSubstatus.css('vertical-align', 'middle')
+    $radOptSubstatus.attr('value', 'substatus')
+    $radOptSubstatus.attr('class', 'status-substatus-rad')
+
+    var $labelSubstatus = $('<label>').appendTo($ctlDiv)
+    $labelSubstatus.attr('for', id + '-def-display-substatus')
+    $labelSubstatus.text('Substatus')
+    $labelSubstatus.css('width', 'fit-content')
+    $labelSubstatus.css('vertical-align', 'baseline')
+    $labelSubstatus.css('font-weight', 'normal')
+
+    $('input[name="' + id + '-def-display"]').change(function() {
+      onChangeStatusSubstatusRadio.forEach(function(fn){
+        var status = fns.getStatusSubstatusRadioSelection(config)
+        fn(status)
+      })
+    })
+  }
+  fns.getStatusSubstatusRadioSelection = function(config) {
+    return getRadioValue(config, 'status-substatus-rad')
+  }
+  fns.onStatusSubstatusRadioSelection = function(fn) {
+    onChangeStatusSubstatusRadio.push(fn)
+  }
+
   // Generate ES filters from control values
   fns.getFiltersFromControls = function(config, tvk, group) {
     // This functioncan be called from functions implementing ES queries.
@@ -113,16 +174,16 @@
     }
     var filtersMustNot = []
 
-    // Status filters
-    if (fns.isAcceptedOnlyChecked(config)) {
-      filtersMust.push({"query_type": "match_phrase", "field": "identification.verification_status", "value": "V"})
-    } else {
-      // Records with no status are always excluded (at request of Martin Harvey)
-      filtersMustNot.push({"query_type": "match_phrase","field": "identification.verification_status","value": ""})
-      if (fns.isExcludeNotAcceptedChecked(config)) {
-        filtersMustNot.push({"query_type": "match_phrase", "field": "identification.verification_status", "value": "R"})
-      }
-    }
+    // // Status filters
+    // if (fns.isAcceptedOnlyChecked(config)) {
+    //   filtersMust.push({"query_type": "match_phrase", "field": "identification.verification_status", "value": "V"})
+    // } else {
+    //   // Records with no status are always excluded (at request of Martin Harvey)
+    //   filtersMustNot.push({"query_type": "match_phrase","field": "identification.verification_status","value": ""})
+    //   if (fns.isExcludeNotAcceptedChecked(config)) {
+    //     filtersMustNot.push({"query_type": "match_phrase", "field": "identification.verification_status", "value": "R"})
+    //   }
+    // }
 
     // Year filters
     var range = fns.getYearRange(config)
@@ -131,7 +192,8 @@
     if (startYear || endYear) {
       if (!startYear) startYear = 0
       if (!endYear) endYear = new Date().getFullYear()
-      filtersMust.push({"query_type": "query_string","field": "event.year","value": "[" + startYear + " TO " + endYear + "]"})
+      //console.log("event.year:[" + startYear + " TO " + endYear + "]")
+      filtersMust.push({"query_type": "query_string","field": "event.year","value": "event.year:[" + startYear + " TO " + endYear + "]"})
     }
 
     return [filtersMust, filtersMustNot]
@@ -144,7 +206,7 @@
   }
 
   // Helper functions
-  function makeCheckbox(config, id, className, label, checked) {
+  function makeCheckbox(config, id, className, label, checked, fnsCallback) {
     var $div = fns.topDivConfig(config)
     var $ctlDiv = $div.appendTo($('#' + id))
 
@@ -162,6 +224,12 @@
     $label.css('margin', '0 0 0 0.5em')
     $label.css('vertical-align', 'initial')
     $label.text(label)
+
+    $check.change(function() {
+      fnsCallback.forEach(function(fn){
+        fn()
+      })
+    })
   }
 
   function isChecked(config, className) {
@@ -203,6 +271,29 @@
     ctls.forEach(function(ctl) {
       if (!val) {
         var ctlval = $('#' + ctl).find('.' + className).first().val()
+        if (ctlval) val=ctlval
+      }
+    })
+    return val
+  }
+
+  function getRadioValue(config, className) {
+    // Get any controls associated with the block that
+    // owns this config.
+    var ctls = fns.getConfigOpt(config, 'ctls', '')
+    if (ctls) {
+      ctls = ctls.split(' ')
+    } else {
+      ctls = []
+    }
+
+    // Set variable if a control of passed in class is
+    // checked. There could be more than one relevant control,
+    // though it wouldn't makes sense, and we account for that.
+    var val = null
+    ctls.forEach(function(ctl) {
+      if (!val) {
+        var ctlval = $('#' + ctl).find('.' + className + ':checked').first().val()
         if (ctlval) val=ctlval
       }
     })

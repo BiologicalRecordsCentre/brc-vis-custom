@@ -6,3 +6,7 @@
 .brc-chart-pie svg {
   overflow: visible !important;
 }
+
+.labelsPieHighlight {
+  cursor: default;
+}

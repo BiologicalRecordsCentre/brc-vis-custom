@@ -80,7 +80,24 @@
 
     // Busy indicator
     var $busy = fns.getBusy($div)
-    
+
+    // Respond to changes in associated control block
+    fns.onAcceptedOnlyChecked(function(){
+      brcmap.redrawMap()
+    })
+    fns.onExcludeNotAcceptedChecked(function(){
+      brcmap.redrawMap()
+    })
+
+    // Add event handler for status/substatus radio button
+    fns.onStatusSubstatusRadioSelection(function(status){
+      console.log('selected status:', status)
+      //hectadData = filterData(dataRaw)
+      //brcmap.setIdentfier('')
+      brcmap.redrawMap()
+    })
+      
+    // Map
     $('<div id="' + id + '-hectad-map">').appendTo($div)
 
     // Create hectad map from brcatlas library
@@ -103,7 +120,7 @@
     var brcmap = brcatlas.svgMap(chartConfig)
 
     // Array for unprocessed data from response of ES query
-    var rawData = []
+    var dataRaw = []
     // Array for data that will be created from response of ES query
     // and reformatted by the getHectads data access function.
     var hectadData=[]
@@ -111,24 +128,61 @@
     // Define the data access function
     function getHectadsStatus(identifier) {
 
-      var datum = dataVer.find(function(d){return identifier === d.name})
+      var statusVer = dataVer.find(function(d){return identifier === d.name})
+      
+      var types
+      var statusType = fns.getStatusSubstatusRadioSelection(config)
+      if (statusType === 'status') {
+        types = dataVer.filter(function(dv){return dv.set === 1})
+      } else {
+        types = dataVer.filter(function(dv){return dv.set === 2})
+      }
 
-      //console.log('datum', datum)
-      console.log('hectadData', hectadData)
+      // if (fns.isAcceptedOnlyChecked(config)) {
+      //   dataFiltered = dataFiltered.filter(function(v){
+      //     return v.key['identification-verification_status'] === 'V'
+      //   })
+      // }
+      // if (fns.isExcludeNotAcceptedChecked(config)) {
+      //   dataFiltered = dataFiltered.filter(function(v){
+      //     return v.key['identification-verification_status'] !== 'R'
+      //   })
+      // }
+
+      var recs = [...hectadData]
+      if (fns.isAcceptedOnlyChecked(config)) {
+        recs = recs.filter(function(h){
+          return h.a_status.indexOf('V') > -1
+        })
+      }
+      if (fns.isExcludeNotAcceptedChecked(config)) {
+        recs = recs.filter(function(h){
+          return !(h.a_status.indexOf('V') === -1 && h.a_status.indexOf('C') === -1)
+        })
+      }
+
 
       return new Promise(function (resolve, reject) {
         // At this stage, there might be some records without a 
         // resolved hectad (possibly outside UK?) so filter these out.
-        var recs = hectadData.filter(function(h){return h.gr}).map(function(h) {
+        recs = recs.filter(function(h){return h.gr}).map(function(h) {
+          var colour = 'black'
+          if (!statusVer) {
+            for (var i=0; i<types.length; i++) {
+              var code = String(types[i].code)
+              if ((h.a_status).indexOf(code) > -1) {
+                colour = types[i].colour
+                break
+              }
+            }
+          }
           return {
             gr: h.gr,
             id: h.gr,
-            colour: datum ? datum.colour : 'black',
+            colour: statusVer ? statusVer.colour : colour,
             caption: h.recs
           }
         })
-
-        //console.log('recs', recs)
 
         resolve({
           records: recs,
@@ -142,12 +196,27 @@
 
     // Set up div for ES idc-output and idc-output-customScript
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
+    var $cs2 = $('<div id="' + id + '-cs-div-2"></div>').appendTo($('#' + id))
 
     fns.addTaxonSelectedFn(function (usedTaxonSelId, tvk, taxon, group) {
+      dataRaw = []
+      $busy.show()
+      // Initially the data was retrieved from ES with a single aggregate
+      // query using hectad, status and substatus. However with large
+      // queries, e.g. all butterflies, the retrieved data appeared to be
+      // truncated. An aggregate query of that kind will generate a huge
+      // number of buckets and maybe this is causing the query to come up
+      // against some sort of limit somehwere. So instead, we're using two
+      // ES queries - one for hectad and status and one for hectad and substatus.
+      // Then the results are combined in the Indicia custom function 
+      // callback.
+      esStatus(usedTaxonSelId, tvk, taxon, group)
+      esSubstatus(usedTaxonSelId, tvk, taxon, group)
+    })
+
+    function esStatus(usedTaxonSelId, tvk, taxon, group) {
 
       if (usedTaxonSelId === config.taxonSelControl) {
-
-        $busy.show()
 
         // Set up filters in response to controls
         var filters = fns.getFiltersFromControls(config, tvk, group)
@@ -158,11 +227,9 @@
           mode: "compositeAggregation",
           uniqueField: "location.grid_square.10km.centre",
           uniqueField: "identification.verification_status",
-          uniqueField: "identification.verification_substatus",
           fields: [
             "location.grid_square.10km.centre",
             "identification.verification_status",
-            "identification.verification_substatus"
           ],
           filterBoolClauses: {
             "must": filters[0],
@@ -185,44 +252,96 @@
           functionName: id,
         })
       }
-    })
+    }
 
-    // Add the Indicia ES custom callback function to create
-    // the distrubution map when the query response is returned.
+    function esSubstatus (usedTaxonSelId, tvk, taxon, group) {
+
+      if (usedTaxonSelId === config.taxonSelControl) {
+
+        // Set up filters in response to controls
+        var filters = fns.getFiltersFromControls(config, tvk, group)
+
+        indiciaData.esSources.push({
+          size: 0,
+          id: "source-2-" + id,
+          mode: "compositeAggregation",
+          uniqueField: "location.grid_square.10km.centre",
+          uniqueField: "identification.verification_substatus",
+          fields: [
+            "location.grid_square.10km.centre",
+            "identification.verification_substatus"
+          ],
+          filterBoolClauses: {
+            "must": filters[0],
+            "must_not": filters[1]
+          },
+          proxyCacheTimeout: drupalSettings.brc_vis.indiciaUserId ? 60 : 7200
+        })
+
+        // The ES output classes must be added conditionally
+        // because if they are added for a source that doesn't
+        // get added to indiciaData.esSources, then hooking up
+        // the data sources in the BRC vis module JS fails.
+        $cs2.addClass('idc-output')
+        $cs2.addClass('idc-output-customScript')
+        var source = {}
+        source["source-2-" + id] = ''
+        $cs2.idcCustomScript({
+          id: 'custom-script-2-' + id,
+          source: source,
+          functionName: id,
+        })
+      }
+    }
+
     indiciaFns[id]  = function (el, sourceSettings, response) {
+      // Indicia ES custom callback function to create
+      // the distrubution map when the query response is returned.
 
       // Remove any ES output classes otherwise when taxon
       // selector action buttons cause other JS code to execute
       // ES queries, but not this one, then these classes will
       // mess up the hooking up of those data sources.
-      $cs.removeClass('idc-output')
-      $cs.removeClass('idc-output-customScript')
-
-      // 
-      rawData = response.aggregations._rows.buckets.filter(function(h){return h.key['location-grid_square-10km-centre']}).map(function(h) {
+      if (sourceSettings.id === 'source-brc-hectad') {
+        $cs.removeClass('idc-output')
+        $cs.removeClass('idc-output-customScript')
+      } else {
+        $cs2.removeClass('idc-output')
+        $cs2.removeClass('idc-output-customScript')
+      }
+    
+      // We'll process info from 
+      var dataRawPart = response.aggregations._rows.buckets.filter(function(h){return h.key['location-grid_square-10km-centre']}).map(function(h) {
         var latlon = h.key['location-grid_square-10km-centre'].split(' ')
         var hectad = bigr.getGrFromCoords(Number(latlon[0]), Number(latlon[1]), 'wg', '', [10000])
         return {
           gr: hectad.p10000,
+          type: sourceSettings.id === 'source-brc-hectad' ? 'status' : 'substatus',
           status: h.key['identification-verification_status'],
           substatus: h.key['identification-verification_substatus'],
           recs: h.doc_count
         }
       })
 
-      hectadData = filterData(rawData)
-      $busy.hide()
-      brcmap.setIdentfier('')
-      brcmap.redrawMap()
+      if (dataRaw.length === 0) {
+        dataRaw = [...dataRawPart]
+      } else {
+        dataRaw = [...dataRaw, ...dataRawPart]
+
+        hectadData = filterData(dataRaw)
+        $busy.hide()
+        brcmap.setIdentfier('')
+        brcmap.redrawMap()
+      }
     }
 
     fns.hectadVerificationRemap = function(status) {
 
       if (status) {
-        var datum = dataVer.find(function(d){return status === d.name})
-        hectadData = filterData(rawData, datum.code)
+        var statusVer = dataVer.find(function(d){return status === d.name})
+        hectadData = filterData(dataRaw, statusVer.code)
       } else {
-        hectadData = rawData
+        hectadData = filterData(dataRaw)
       }
       brcmap.setIdentfier(status)
       brcmap.redrawMap()
@@ -233,9 +352,9 @@
 
     // First of all filter based on status/substatus
     var iCode = dataVer.findIndex(function(d){return statusCode === d.code})
-    var dataFiltered
-    if (statusCode !== null) {
-      dataFiltered = data.filter(function(h){
+    var dataStatus
+    if (statusCode || statusCode === 0 ) {
+      dataStatus = data.filter(function(h){
         if (iCode < 3) {
           return h.status === statusCode
         } else {
@@ -243,21 +362,31 @@
         }
       })
     } else {
-      dataFiltered = data
+      dataStatus = data
     }
 
     // Turns out that sometimes more than one lat/lon combo is returned for a single hectad.
-    // Create a single record for each hectad, summing the number of records.
-    var retData = dataFiltered.filter(function(h){return h.gr}).reduce(function(a,h) {
+    // Create a single record for each hectad, summing the number of records and
+    // collecting status codes in an array.
+    var dataReturn = dataStatus.filter(function(h){return h.gr}).reduce(function(a,h) {
       var existing = a.find(function(ah){return ah.gr === h.gr})
       if (existing) {
         existing.recs += h.recs
+        var status = h.type === 'status' ? h.status : String(h.substatus)
+        existing.a_status = [...existing.a_status, status]
       } else {
-        a.push({gr: h.gr, recs: h.recs, status: h.status, substatus: h.substatus})
+        a.push({
+          gr: h.gr, 
+          recs: h.recs, 
+          //type: h.type,
+          //status: h.status, 
+          //substatus: h.substatus, 
+          a_status: h.type === 'status' ? [h.status] : [String(h.substatus)] 
+        })
       }
       return a
     }, [])
 
-    return retData
+    return dataReturn
   }
 })(jQuery, drupalSettings.brc_vis.fns, drupalSettings.brc_vis.data)
