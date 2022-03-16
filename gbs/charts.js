@@ -2,12 +2,29 @@
 
   fns.topN = function(id, config) {
 
-    // Set up and empty donut chart
     var loggedInUser = getConfigOpt(config, 'loggedInUser', false)
 
     var $div = $('<div style="margin: 0 10px 10px 10px"></div>').appendTo($('#' + id))
     //$('<h3 style="margin-top: 0">Top ' + topN + ' butterflies recorded</h3>').appendTo($div)
     $('<div id="' + id + '-chart-div" style="max-width: 500px"></div>').appendTo($div)
+
+    // Set up an empty donut chart
+    var radius = Number(getConfigOpt(config, 'radius', 200))
+    var innerRadius = Number(getConfigOpt(config, 'innerRadius', 100))
+    var legendWidth = Number(getConfigOpt(config, 'legendWidth', 150))
+    var titleFontSize = Number(getConfigOpt(config, 'titleFontSize', '16'))
+    var pieConfig = {
+      selector: '#' + id + '-chart-div',
+      innerRadius: innerRadius,
+      radius: radius,
+      legendWidth: legendWidth,
+      titleFontSize: titleFontSize,
+      data: [], 
+      label: 'value',
+      expand: true,
+      duration: 500
+    }
+    var donut = brccharts.pie(pieConfig)
 
     // Get the data from ES
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
@@ -28,7 +45,8 @@
     indiciaData.esSources.push({
       size: 0,
       id: "source-" + id,
-      mode: "compositeAggregation",
+      //mode: "compositeAggregation",
+      mode: "termAggregation",
       uniqueField: "taxon.accepted_name.keyword",
       fields: [
         //"taxon.vernacular_name.keyword",
@@ -53,33 +71,25 @@
 
     indiciaFns[id] = function (el, sourceSettings, response) {
       console.log('ES callback ' + id + ' called')
+      //console.log(response)
 
-      var data = response.aggregations._rows.buckets.map(function(r) {
+      //var data = response.aggregations._rows.buckets.map(function(r) {
+      var data = response.aggregations._idfield.buckets.map(function(r) {
         return {
           number: r.doc_count,
-          //name: r.key['taxon-vernacular_name-keyword'] ? r.key['taxon-vernacular_name-keyword'] : 'White, unknown'
-          name: getVernacular(r.key['taxon-accepted_name-keyword']) 
+          //name: getVernacular(r.key['taxon-accepted_name-keyword']) 
+          name: getVernacular(r.key) 
         }
       })
       .sort(function(a, b) {return (b.number > a.number) ? 1 : -1})
       .filter(function(d,i) {return i < topN})
-      
-      var radius = Number(getConfigOpt(config, 'radius', 200))
-      var innerRadius = Number(getConfigOpt(config, 'innerRadius', 100))
-      var legendWidth = Number(getConfigOpt(config, 'legendWidth', 150))
-      var titleFontSize = Number(getConfigOpt(config, 'titleFontSize', '16'))
-   
-      var pieConfig = {
-        selector: '#' + id + '-chart-div',
-        innerRadius: innerRadius,
-        radius: radius,
-        legendWidth: legendWidth,
-        titleFontSize: titleFontSize,
-        data: data, 
-        label: 'value',
-        expand: true
-      }
-      brccharts.pie(pieConfig)
+
+      // Default transition not working nicely because colours for each
+      // species as introduced are kept, but top species change from year
+      // to year and different species end up with same colour, so use
+      // this hack to empty previous chart before building new one.
+      donut.setChartOpts({data: []})
+      setTimeout(function(){donut.setChartOpts({data: data})}, 1000)
     }
   }
 
@@ -91,6 +101,27 @@
     //$('<h3 style="margin-top: 0">Counts per month</h3>').appendTo($div)
     $('<div id="' + id + '-chart-div" style="max-width: 500px"></div>').appendTo($div)
 
+    // Initialise chart
+    var phenConfig = {
+      selector: '#' + id + '-chart-div',
+      data: [], 
+      perRow: 1,
+      expand: true,
+      taxa: ['alltaxa'],
+      metrics:  [{ prop: 'number', label: 'total', colour: 'green' }],
+      width: 500,
+      height: 250,
+      axisLeftLabel: 'Counts per month',
+      axisLabelFontSize: 12,
+      margin: {left: 50, bottom: 15, top: 10},
+      showLegend: false,
+      showTaxonLabel: false,
+      axisLeft: 'tick',
+      axisBottom: 'tick',
+      style: 'bars'
+    }
+    var monthlyChart = brccharts.phen1(phenConfig)
+
     // Get the data from ES
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
     $cs.addClass('idc-output')
@@ -98,7 +129,6 @@
 
 
     var filters = [
-      //
       {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"}
     ]
     if (loggedInUser && drupalSettings.brc_vis.indiciaUserId) {
@@ -111,7 +141,7 @@
     indiciaData.esSources.push({
       size: 0,
       id: "source-" + id,
-      mode: "compositeAggregation",
+      mode: "termAggregation",
       uniqueField: "event.month",
       fields: [
         "event.month",
@@ -133,33 +163,16 @@
     // Callback functions for when data loaded
     indiciaFns[id] = function (el, sourceSettings, response) {
       console.log('ES callback ' + id + ' called')
-      var data = response.aggregations._rows.buckets.map(function(r) {
+      var data = response.aggregations._idfield.buckets.map(function(r) {
         return {
           number: r.doc_count,
-          month: Number(r.key['event-month']),
+          //month: Number(r.key['event-month']),
+          month: Number(r.key),
           taxon: 'alltaxa'
         }
       })
 
-      var phenConfig = {
-        selector: '#' + id + '-chart-div',
-        data: data, 
-        perRow: 1,
-        expand: true,
-        taxa: ['alltaxa'],
-        metrics:  [{ prop: 'number', label: 'total', colour: 'green' }],
-        width: 500,
-        height: 250,
-        axisLeftLabel: 'Counts per month',
-        axisLabelFontSize: 12,
-        margin: {left: 50, bottom: 15, top: 10},
-        showLegend: false,
-        showTaxonLabel: false,
-        axisLeft: 'tick',
-        axisBottom: 'tick',
-        style: 'bars'
-      }
-      brccharts.phen1(phenConfig)
+      monthlyChart.setChartOpts({data: data})
     }
   }
 
@@ -171,13 +184,34 @@
     //$('<h3 style="margin-top: 0">Top 10 species through the year</h3>').appendTo($div)
     $('<div id="' + id + '-chart-div" style="max-width: 500px"></div>').appendTo($div)
 
+    // Create the phenology stacked chart
+    var phenConfig = {
+      selector: '#' + id + '-chart-div',
+      data: [], 
+      perRow: 1,
+      expand: true,
+      taxa: ['dummy'],
+      metrics: [],
+      width: 500,
+      height: 250,
+      axisLeftLabel: 'Counts per month',
+      axisLabelFontSize: 12,
+      legendFontSize: 12,
+      margin: {left: 50, bottom: 15, top: 10},
+      showTaxonLabel: false,
+      axisLeft: 'tick',
+      axisBottom: 'tick',
+      style: 'areas',
+      stacked: true
+    }
+    var phenChart = brccharts.phen1(phenConfig)
+
     // Get the data from ES
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
     $cs.addClass('idc-output')
     $cs.addClass('idc-output-customScript')
 
     var filters = [
-      //
       {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"}
     ]
     if (loggedInUser && drupalSettings.brc_vis.indiciaUserId) {
@@ -191,12 +225,18 @@
       size: 0,
       id: "source-" + id,
       mode: "compositeAggregation",
-      uniqueField: "taxon.accepted_name.keyword",
+      uniqueField: "event.month",
       fields: [
         "event.month",
-        //"taxon.vernacular_name.keyword",
         "taxon.accepted_name.keyword"
       ],
+      aggregation: {
+        records: {
+          terms: {
+            field: "event.month"
+          }
+        }
+      },
       filterBoolClauses: {
         "must": filters
       },
@@ -220,7 +260,6 @@
         return {
           number: r.doc_count,
           month: Number(r.key['event-month']),
-          //taxon: r.key['taxon-vernacular_name-keyword'] ? r.key['taxon-vernacular_name-keyword'] : 'White, unknown'
           taxon: getVernacular(r.key['taxon-accepted_name-keyword'])
         }
       })
@@ -275,26 +314,28 @@
         }
       })
  
-      var phenConfig = {
-        selector: '#' + id + '-chart-div',
-        data: chartData, 
-        perRow: 1,
-        expand: true,
-        taxa: ['dummy'],
-        metrics: metrics,
-        width: 500,
-        height: 250,
-        axisLeftLabel: 'Counts per month',
-        axisLabelFontSize: 12,
-        legendFontSize: 12,
-        margin: {left: 50, bottom: 15, top: 10},
-        showTaxonLabel: false,
-        axisLeft: 'tick',
-        axisBottom: 'tick',
-        style: 'areas',
-        stacked: true
-      }
-      brccharts.phen1(phenConfig)
+      // var phenConfig = {
+      //   selector: '#' + id + '-chart-div',
+      //   data: chartData, 
+      //   perRow: 1,
+      //   expand: true,
+      //   taxa: ['dummy'],
+      //   metrics: metrics,
+      //   width: 500,
+      //   height: 250,
+      //   axisLeftLabel: 'Counts per month',
+      //   axisLabelFontSize: 12,
+      //   legendFontSize: 12,
+      //   margin: {left: 50, bottom: 15, top: 10},
+      //   showTaxonLabel: false,
+      //   axisLeft: 'tick',
+      //   axisBottom: 'tick',
+      //   style: 'areas',
+      //   stacked: true
+      // }
+      // brccharts.phen1(phenConfig)
+
+      phenChart.setChartOpts({data: chartData, metrics: metrics})
     }
   }
 

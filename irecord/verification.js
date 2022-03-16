@@ -83,13 +83,16 @@
     // Busy indicator
     var $busy = fns.getBusy($div)
 
-    // Respond to changes in associated control block
-    fns.onAcceptedOnlyChecked(function(){
-      plotChart()
-    })
-    fns.onExcludeNotAcceptedChecked(function(){
-      plotChart()
-    })
+    // Respond to changes in associated control block if the interactive
+    // config option is set to true
+    if (fns.getConfigOpt(config, 'interactive', 'false') === 'true') {
+      fns.onAcceptedOnlyChecked(function(){
+        plotChart()
+      })
+      fns.onExcludeNotAcceptedChecked(function(){
+        plotChart()
+      })
+    }
 
     $('<div id="' + id + '-chart">').appendTo($div)
 
@@ -135,7 +138,7 @@
         $busy.show()
 
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, group)
+        var filters = fns.getFiltersFromControls(config, tvk, group, true)
 
         indiciaData.esSources.push({
           size: 0,
@@ -184,6 +187,14 @@
       $cs.removeClass('idc-output-customScript')
 
       dataResponse = response.aggregations._rows.buckets
+
+      // Convert any deprecated statuses to C (not reviewed)
+      dataResponse.forEach(function(d){
+        var status = d.key['identification-verification_status']
+        if (status !== 'V' && status !== 'C' && status !== 'R') {
+          d.key['identification-verification_status'] = 'C'
+        }
+      })
       
       $busy.hide()
       plotChart()
@@ -215,7 +226,7 @@
       })
 
       var dataFiltered = [...dataResponse]
-      console.log('isAcceptedOnlyChecked', fns.isAcceptedOnlyChecked(config))
+
       if (fns.isAcceptedOnlyChecked(config)) {
         dataFiltered = dataFiltered.filter(function(v){
           return v.key['identification-verification_status'] === 'V'
@@ -247,6 +258,7 @@
     verification1: function(name){
       fns.hectadVerificationRemap(name)
       fns.phenologyVerificationReplot(name)
+      fns.yearlyVerificationReplot(name)
     }
   }
 

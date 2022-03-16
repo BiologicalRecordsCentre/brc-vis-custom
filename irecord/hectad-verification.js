@@ -91,8 +91,6 @@
 
     // Add event handler for status/substatus radio button
     fns.onStatusSubstatusRadioSelection(function(status){
-      console.log('selected status:', status)
-      //hectadData = filterData(dataRaw)
       //brcmap.setIdentfier('')
       brcmap.redrawMap()
     })
@@ -138,29 +136,7 @@
         types = dataVer.filter(function(dv){return dv.set === 2})
       }
 
-      // if (fns.isAcceptedOnlyChecked(config)) {
-      //   dataFiltered = dataFiltered.filter(function(v){
-      //     return v.key['identification-verification_status'] === 'V'
-      //   })
-      // }
-      // if (fns.isExcludeNotAcceptedChecked(config)) {
-      //   dataFiltered = dataFiltered.filter(function(v){
-      //     return v.key['identification-verification_status'] !== 'R'
-      //   })
-      // }
-
-      var recs = [...hectadData]
-      if (fns.isAcceptedOnlyChecked(config)) {
-        recs = recs.filter(function(h){
-          return h.a_status.indexOf('V') > -1
-        })
-      }
-      if (fns.isExcludeNotAcceptedChecked(config)) {
-        recs = recs.filter(function(h){
-          return !(h.a_status.indexOf('V') === -1 && h.a_status.indexOf('C') === -1)
-        })
-      }
-
+      var recs = filterData(dataRaw, identifier)
 
       return new Promise(function (resolve, reject) {
         // At this stage, there might be some records without a 
@@ -219,7 +195,7 @@
       if (usedTaxonSelId === config.taxonSelControl) {
 
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, group)
+        var filters = fns.getFiltersFromControls(config, tvk, group, true)
 
         indiciaData.esSources.push({
           size: 0,
@@ -259,7 +235,7 @@
       if (usedTaxonSelId === config.taxonSelControl) {
 
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, group)
+        var filters = fns.getFiltersFromControls(config, tvk, group, true)
 
         indiciaData.esSources.push({
           size: 0,
@@ -314,10 +290,17 @@
       var dataRawPart = response.aggregations._rows.buckets.filter(function(h){return h.key['location-grid_square-10km-centre']}).map(function(h) {
         var latlon = h.key['location-grid_square-10km-centre'].split(' ')
         var hectad = bigr.getGrFromCoords(Number(latlon[0]), Number(latlon[1]), 'wg', '', [10000])
+
+        // Convert any deprecated statuses to C (not reviewed)
+        var status = h.key['identification-verification_status']
+        if (status !== 'V' && status !== 'C' && status !== 'R') {
+          status = 'C'
+        }
+
         return {
           gr: hectad.p10000,
           type: sourceSettings.id === 'source-brc-hectad' ? 'status' : 'substatus',
-          status: h.key['identification-verification_status'],
+          status: status,
           substatus: h.key['identification-verification_substatus'],
           recs: h.doc_count
         }
@@ -328,7 +311,6 @@
       } else {
         dataRaw = [...dataRaw, ...dataRawPart]
 
-        hectadData = filterData(dataRaw)
         $busy.hide()
         brcmap.setIdentfier('')
         brcmap.redrawMap()
@@ -337,56 +319,58 @@
 
     fns.hectadVerificationRemap = function(status) {
 
-      if (status) {
-        var statusVer = dataVer.find(function(d){return status === d.name})
-        hectadData = filterData(dataRaw, statusVer.code)
-      } else {
-        hectadData = filterData(dataRaw)
-      }
       brcmap.setIdentfier(status)
       brcmap.redrawMap()
     }
-  }
 
-  function filterData(data, statusCode) {
+    function filterData(data, status) {
 
-    // First of all filter based on status/substatus
-    var iCode = dataVer.findIndex(function(d){return statusCode === d.code})
-    var dataStatus
-    if (statusCode || statusCode === 0 ) {
-      dataStatus = data.filter(function(h){
-        if (iCode < 3) {
-          return h.status === statusCode
+      //console.log('data', data)
+
+      // Turns out that sometimes more than one lat/lon combo is returned for a single hectad.
+      // Create a single record for each hectad, summing the number of records and
+      // collecting status codes in an array.
+      var dataReturn = data.filter(function(h){return h.gr}).reduce(function(a,h) {
+        var existing = a.find(function(ah){return ah.gr === h.gr})
+        if (existing) {
+          existing.recs += h.recs
+          var status = h.type === 'status' ? h.status : String(h.substatus)
+          if (existing.a_status.indexOf(status) === -1) {
+            existing.a_status.push(status)
+          }
+          //existing.a_status = [...existing.a_status, status]
         } else {
-          return h.substatus === statusCode
+          a.push({
+            gr: h.gr, 
+            recs: h.recs, 
+            a_status: h.type === 'status' ? [h.status] : [String(h.substatus)] 
+          })
         }
-      })
-    } else {
-      dataStatus = data
-    }
+        return a
+      }, [])
 
-    // Turns out that sometimes more than one lat/lon combo is returned for a single hectad.
-    // Create a single record for each hectad, summing the number of records and
-    // collecting status codes in an array.
-    var dataReturn = dataStatus.filter(function(h){return h.gr}).reduce(function(a,h) {
-      var existing = a.find(function(ah){return ah.gr === h.gr})
-      if (existing) {
-        existing.recs += h.recs
-        var status = h.type === 'status' ? h.status : String(h.substatus)
-        existing.a_status = [...existing.a_status, status]
-      } else {
-        a.push({
-          gr: h.gr, 
-          recs: h.recs, 
-          //type: h.type,
-          //status: h.status, 
-          //substatus: h.substatus, 
-          a_status: h.type === 'status' ? [h.status] : [String(h.substatus)] 
+      // Filter based on inclusion/exclusion checkboxes
+      if (fns.isAcceptedOnlyChecked(config)) {
+        dataReturn = dataReturn.filter(function(h){
+          return h.a_status.indexOf('V') > -1
         })
       }
-      return a
-    }, [])
+      if (fns.isExcludeNotAcceptedChecked(config)) {
+        dataReturn = dataReturn.filter(function(h){
+          return h.a_status.indexOf('V') > -1 || h.a_status.indexOf('C') > -1
+        })
+      }
 
-    return dataReturn
+      // Filter based on status/substatus
+      if (status) {
+        var statusCode = dataVer.find(function(d){return status === d.name}).code
+        dataReturn = dataReturn.filter(function(h){
+          return h.a_status.indexOf(String(statusCode)) > -1
+        })
+      }
+  
+      //console.log('dataReturn', dataReturn)
+      return dataReturn
+    }
   }
 })(jQuery, drupalSettings.brc_vis.fns, drupalSettings.brc_vis.data)

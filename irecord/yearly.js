@@ -40,7 +40,7 @@
         $busy.show()
 
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, group)
+        var filters = fns.getFiltersFromControls(config, tvk, group, false)
 
         indiciaData.esSources.push({
           size: 0,
