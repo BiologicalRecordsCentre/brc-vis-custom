@@ -1,140 +1,67 @@
 (function ($, fns, data) {
 
-  var dataVer = [
-    {
-      set: 1,
-      name: "Accepted",
-      code: 'V',
-      number: 0,
-      colour: '#008000',
-      image: 'libraries/brcvis/irecord/images/considered-correct.png',
-    },
-    {
-      set: 1,
-      name: "Not reviewed",
-      code: 'C',
-      number: 0,
-      colour: '#FFA500',
-    },
-    {
-      set: 1,
-      name: "Not accepted",
-      code: 'R',
-      number: 0,
-      colour: '#FF0000',
-      image: 'libraries/brcvis/irecord/images/incorrect.png',
-    },
-    {
-      set: 2,
-      name: "Correct",
-      code: 1,
-      colour: '#008000',
-      image: 'libraries/brcvis/irecord/images/accepted.png',
-      number: 0
-    },
-    {
-      set: 2,
-      name: "Considered correct",
-      code: 2,
-      colour: '#00800088',
-      image: 'libraries/brcvis/irecord/images/considered-correct.png',
-      number: 0
-    },
-    {
-      set: 2,
-      name: "No sub-status",
-      code: 0,
-      colour: 'silver',
-      number: 0
-    },
-    {
-      set: 2,
-      name: "Plausible",
-      code: 3,
-      colour: '#FFA500',
-      image: 'libraries/brcvis/irecord/images/plausible.png',
-      number: 0
-    },
-    {
-      set: 2,
-      name: "Unable to verify",
-      code: 4,
-      colour: '#FF000088',
-      image: 'libraries/brcvis/irecord/images/unable-to-verify.png',
-      number: 0
-    },
-    {
-      set: 2,
-      name: "Incorrect",
-      code: 5,
-      colour: '#FF0000',
-      image: 'libraries/brcvis/irecord/images/incorrect.png',
-      number: 0
-    },
-  ]
-
   var responseData, phen1
   
-  fns.phenologyVerification = function(id, config) {
+  fns.trend = function(id, config) {
     
     var $div = fns.topDivConfig(config)
     $div.appendTo($('#' + id))
 
-    var selectedDonutStatus = ''
-
-    // Add event handler for status/substatus radio button
-    fns.onStatusSubstatusRadioSelection(function(status){
-      if (!selectedDonutStatus) {
-        plotData(status)
-      }
-    })
+    var taxaFromGroup = []
 
     // Busy indicator
     var $busy = fns.getBusy($div)
 
-    $('<div id="' + id + '-phenology-chart">').appendTo($div)
+    // Species selection
+    $('<div id="' + id + '-trend-chart-sp-select">').appendTo($div)
+    speciesSelect(id + '-trend-chart-sp-select')
+
+    $('<div id="' + id + '-trend-chart">').appendTo($div)
 
     // GUI Phenology
     var chartConfig = {
-      selector: "#" + id + "-phenology-chart",
-      title: 'Phenology',
+      selector: "#" + id + "-trend-chart",
+      title: 'Trend chart 1',
       titleFontSize: 13,
       legendFontSize: 12,
+      axisLeftLabel: 'Number of records (bars)',
+      axisRightLabel: 'Percentage of group records (line)',
       data: [],
       taxa: ['taxon'],
-      metrics: [],
       width: 300,
       height: 200,
       perRow: 1,
       expand: true,
-      showTaxonLabel: false
+      showLegend: true,
     }
     chartConfig = {...chartConfig, ...fns.parseChartConfig(config)}
-    phen1 = brccharts.phen1(chartConfig)
+    trend = brccharts.trend(chartConfig)
 
     // Get the data from ES
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
 
     fns.addTaxonSelectedFn(function (usedTaxonSelId, tvk, taxon, group) {
 
+      console.log('taxon selected', usedTaxonSelId, config.taxonSelControl)
+
       if (usedTaxonSelId === config.taxonSelControl) {
 
         $busy.show()
 
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, taxon, group, true)
+        var filters = fns.getFiltersFromControls(config, tvk, taxon, group, false)
+
+        //console.log('filters', filters)
 
         indiciaData.esSources.push({
           size: 0,
           id: "source-" + id,
           mode: "compositeAggregation",
-          uniqueField: "event.week",
-          uniqueField: "identification.verification_status",
-          uniqueField: "identification.verification_substatus",
+          uniqueField: "event.year",
+          uniqueField: "taxon.accepted_name",
           fields: [
-            "event.week",
-            "identification.verification_status",
-            "identification.verification_substatus",
+            "event.year",
+            "taxon.accepted_name"
           ],
           filterBoolClauses: {
             "must": filters[0],
@@ -163,7 +90,16 @@
     // the chart when the query response is returned.
     indiciaFns[id]  = function (el, sourceSettings, response) {
 
-      //console.log(response)
+      console.log(response)
+
+      taxaFromGroup = []
+      response.aggregations._rows.buckets.forEach(function(taxonYear){
+        if (taxaFromGroup.indexOf(taxonYear.key['taxon-accepted_name']) === -1){
+          taxaFromGroup.push(taxonYear.key['taxon-accepted_name'])
+        }
+      })
+
+      console.log('taxaFromGroup', taxaFromGroup)
 
       // Remove any ES output classes otherwise when taxon
       // selector action buttons cause other JS code to execute
@@ -174,26 +110,21 @@
 
       //console.log('ES callback ' + id + ' called')
         
-      // Filter out data that has no week data
-      responseData = response.aggregations._rows.buckets.filter(function(w) {return w.key['event-week']})
+      // // Filter out data that has no week data
+      // responseData = response.aggregations._rows.buckets.filter(function(w) {return w.key['event-week']})
 
-      // Convert any deprecated statuses to C (not reviewed)
-      responseData.forEach(function(w){
-        var status = w.key['identification-verification_status']
-        if (status !== 'V' && status !== 'C' && status !== 'R') {
-          w.key['identification-verification_status'] = 'C'
-        }
-      })
+      // // Convert any deprecated statuses to C (not reviewed)
+      // responseData.forEach(function(w){
+      //   var status = w.key['identification-verification_status']
+      //   if (status !== 'V' && status !== 'C' && status !== 'R') {
+      //     w.key['identification-verification_status'] = 'C'
+      //   }
+      // })
 
       $busy.hide()
-      plotData()
+      //plotData()
     }
 
-    fns.phenologyVerificationReplot = function(status) {
-      selectedDonutStatus = status
-      plotData(status)
-    }
-  
     function plotData(status) {
   
       // Sometimes can get here when responseData is undefined
@@ -300,6 +231,39 @@
       phen1.setChartOpts({
         data: phen1Data,
         metrics: metrics,
+      })
+    }
+
+
+    function speciesSelect(id) {
+
+      // Autocomplete species select (from group taxa)
+      const $wrapper = $('<div>').appendTo($('#' + id))
+      $wrapper.css('margin', '0.3em 0')
+      $wrapper.attr('class', 'autoComplete_wrapper')
+      const $input = $('<input>').appendTo($wrapper)
+      $input.attr('id', id + '-input')
+      $input.attr('type', 'text')
+      $input.attr('tabindex', '1')
+
+      const autoCompleteGroup = new autoComplete({
+        selector: '#' + id + '-input',
+        placeHolder: 'Type taxon from group',
+        submit: true,
+        data: {src: async function() {return taxaFromGroup}},  
+        // resultsList: {
+        //   maxResults: 50,
+        // },
+        // events: {
+        //   input: {
+        //     focus: () => {
+        //       if (autoCompleteGroup.input.value.length) autoCompleteGroup.start()
+        //     },
+        //     selection: (event) => {
+        //       console.log('selected', event.detail.selection.value.title)
+        //     }
+        //   }
+        // }
       })
     }
   }

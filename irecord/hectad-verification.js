@@ -195,7 +195,7 @@
       if (usedTaxonSelId === config.taxonSelControl) {
 
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, group, true)
+        var filters = fns.getFiltersFromControls(config, tvk, taxon, group, true)
 
         indiciaData.esSources.push({
           size: 0,
@@ -235,7 +235,7 @@
       if (usedTaxonSelId === config.taxonSelControl) {
 
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, group, true)
+        var filters = fns.getFiltersFromControls(config, tvk, taxon, group, true)
 
         indiciaData.esSources.push({
           size: 0,

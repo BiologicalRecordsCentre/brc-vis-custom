@@ -262,7 +262,7 @@
         $('#' + config.taxonSelControl2).prop('data-enabled-fn')(false)
 
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, group, false)
+        var filters = fns.getFiltersFromControls(config, tvk, taxon, group, false)
 
         // Store verificatio status filters for use with image download text
         if (iTaxon === 1) {
@@ -270,9 +270,6 @@
         } else {
           verificationFiltersTaxon2 = [fns.isAcceptedOnlyChecked(config), fns.isExcludeNotAcceptedChecked(config)]
         }
-
-        console.log(filters)
-        //var filters = [[{"query_type": "match_phrase", "field": "taxon.taxa_taxon_list_id", "value": tvk}],[]]
 
         indiciaData.esSources.push({
           size: 0,

@@ -464,7 +464,7 @@
   }
 
   // Generate ES filters from control values
-  fns.getFiltersFromControls = function(config, tvk, group, interactive) {
+  fns.getFiltersFromControls = function(config, tvk, taxon, group, interactive) {
     // This function can be called from functions implementing ES queries.
     // Creates ES filters from the control values.
 
@@ -476,9 +476,13 @@
       var filtersMust = [
         {"query_type": "match_phrase", "field": "taxon.taxa_taxon_list_id", "value": tvk},
       ]
-    } else {
+    } else if (group) {
       var filtersMust = [
         {"query_type": "match_phrase", "field": "taxon.group", "value": group}
+      ]
+    } else {
+      var filtersMust = [
+        {"query_type": "query_string", "field": "taxon.accepted_name","value": "taxon.accepted_name:\"" + taxon + "\""}
       ]
     }
     var filtersMustNot = []

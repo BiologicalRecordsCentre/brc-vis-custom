@@ -30,9 +30,20 @@
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
 
     const linkedTaxonSelId = config.taxonSelControl
-    fns.addTaxonSelectedFn(function (usedTaxonSelId, taxon) {
+    fns.addTaxonSelectedFn(function (usedTaxonSelId, tvk, taxon, group) {
 
       if (usedTaxonSelId === linkedTaxonSelId) {
+
+        var filterMust
+        if (tvk) {
+          filterMust = [
+            {"query_type": "match_phrase","field": "taxon.taxa_taxon_list_id","value":tvk}
+          ]
+        } else {
+          filterMust = [
+            {"query_type": "match_phrase","field": "taxon.accepted_name","value":taxon}
+          ]
+        }
 
         indiciaData.esSources.push({
           size: 0,
@@ -43,9 +54,7 @@
             "event.year"
           ],
           filterBoolClauses: {
-            "must":[
-              {"query_type": "match_phrase","field": "taxon.taxa_taxon_list_id","value":taxon}
-            ]
+            "must": filterMust
           },
           proxyCacheTimeout: drupalSettings.brc_vis.indiciaUserId ? 60 : 7200
         })
