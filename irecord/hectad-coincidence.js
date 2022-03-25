@@ -148,7 +148,7 @@
 
       // Scale adjustment depends on inset type
       var insetType = fns.getInsetRadioSelection(config)
-      console.log('insetType', insetType)
+      //console.log('insetType', insetType)
       var scale = 0.7
       var x = 10
       var y = -7

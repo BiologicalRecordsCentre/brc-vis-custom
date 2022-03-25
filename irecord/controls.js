@@ -19,7 +19,7 @@
     // (which themselves can be added individually
     // from blocks)
     var $div = fns.topDivConfig(config).appendTo($('#' + id))
-    $('<p>The taxon selector and the controls below apply to all the visualisation on this page.</p>').appendTo($div)
+    //$('<p>The taxon selector and the controls below apply to all the visualisation on this page.</p>').appendTo($div)
     $('<div id="' + id + '-ctls">').appendTo($div)
     
     // Remove any top level style stuff because
@@ -27,7 +27,7 @@
     config['top-div-style'] = ''
 
     // Call all the required controls.
-    fns.yearRangeControl(id + '-ctls', config)
+    fns.yearRangeControl(id + '-ctls', {...{minYearInit: 2000, maxYearInit: new Date().getFullYear()}, ...config})
 
     var $hr1 = $('<hr>').appendTo($('#' + id + '-ctls'))
     $hr1.css('margin', '5px 0')
@@ -54,7 +54,7 @@
     var $div = fns.topDivConfig(config).appendTo($('#' + id))
     $('<div id="' + id + '-ctls">').appendTo($div)
 
-    $('<p>The two filter cheboxes below are applied to the taxa data when loaded.</p>').appendTo($('#' + id + '-ctls'))
+    //$('<p>The two filter cheboxes below are applied to the taxa data when loaded.</p>').appendTo($('#' + id + '-ctls'))
 
     fns.acceptedOnlyControl(id + '-ctls', config)
     fns.excludeNotAcceptedControl(id + '-ctls', config)
@@ -62,7 +62,7 @@
     var $hr1 = $('<hr>').appendTo($('#' + id + '-ctls'))
     $hr1.css('margin', '5px 0')
 
-    $('<p>The controls below are applied to the loaded data and map.</p>').appendTo($('#' + id + '-ctls'))
+    //$('<p>The controls below are applied to the loaded data and map.</p>').appendTo($('#' + id + '-ctls'))
 
     fns.coindicenceTaxaCheckboxControls(id + '-ctls', config) 
     fns.insetRadio(id + '-ctls', config) 
@@ -70,6 +70,38 @@
     fns.dotColours(id + '-ctls', config)
     $br = $('<br>').appendTo($('#' + id + '-ctls'))
     fns.downloadButtons(id + '-ctls', config)
+  }
+
+  fns.groupVisControls = function(id, config) {
+
+    // This is a wrapper control which can be used
+    // for pre-created collection of controls
+    // (which themselves can be added individually
+    // from blocks)
+    var $div = fns.topDivConfig(config).appendTo($('#' + id))
+    //$('<p>TODO The taxon selector and the controls below apply to all the visualisation on this page.</p>').appendTo($div)
+    $('<div id="' + id + '-ctls">').appendTo($div)
+    
+    // Remove any top level style stuff because
+    // it shouldn't need to be applied to all sub-blocks
+    config['top-div-style'] = ''
+
+    // Create the required controls.
+    var $groupDisplay = $('<div>').appendTo($('#' + id + '-ctls'))
+    $groupDisplay.attr('id', id + '-group-display') 
+    $groupDisplay.text('No group selected')
+
+    fns.acceptedOnlyControl(id + '-ctls', config)
+    fns.excludeNotAcceptedControl(id + '-ctls', config)
+
+    var $hr1 = $('<hr>').appendTo($('#' + id + '-ctls'))
+    $hr1.css('margin', '5px 0')
+
+    fns.yearRangeControl(id + '-ctls', {...{minYearInit: 2000, maxYearInit: new Date().getFullYear()}, ...config})
+    fns.genButton(id + '-ctls', {...{buttonText: 'Update', buttonMarker: 'update'}, ...config}) 
+
+    var $hr2 = $('<hr>').appendTo($('#' + id + '-ctls'))
+    $hr2.css('margin', '5px 0')
   }
 
   // Control - use only Accepted records
@@ -114,10 +146,11 @@
 
     var $div = fns.topDivConfig(config)
     var $ctlDiv = $div.appendTo($('#' + id))
+    $ctlDiv.css('display', 'inline-block')
     
     var $label = $('<label>').appendTo($ctlDiv)
     $label.attr('for', id + '-year-start')
-    $label.text('Min year')
+    $label.text('Year')
     $label.css('width', 'fit-content')
     $label.css('vertical-align', 'initial')
     $label.css('margin-right', '0.5em')
@@ -130,14 +163,16 @@
     $select.attr('class', 'year-start')
     $select.attr('max', new Date().getFullYear())
     $select.attr('min', 1900)
+    $select.css('width', '4em')
+    $select.val(config.minYearInit)
 
     $label = $('<label>').appendTo($ctlDiv)
     $label.attr('for', id + '-year-end')
-    $label.text('Max year')
+    $label.text('to')
     $label.css('width', 'fit-content')
     $label.css('vertical-align', 'initial')
     $label.css('margin-right', '0.5em')
-    $label.css('margin-left', '1em')
+    $label.css('margin-left', '0.5em')
     $label.css('font-weight', 'normal')
   
     var $select = $('<input>').appendTo($ctlDiv)
@@ -147,6 +182,9 @@
     $select.attr('class', 'year-end')
     $select.attr('max', new Date().getFullYear())
     $select.attr('min', 1900)
+    $select.css('width', '4em')
+    $select.css('margin-right', '0.5em')
+    $select.val(config.maxYearInit)
   }
   fns.getYearRange = function(config) {
 
@@ -463,18 +501,155 @@
     onClickDownload.push(fn)
   }
 
+  // Control - general button
+  var genButtonFns = []
+  fns.genButton = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+    $ctlDiv.css('display', 'inline-block')
+
+    var $but = $('<button>').appendTo($ctlDiv)
+    $but.attr('id', id + '-but-' + config.buttonMarker)
+    $but.text(config.buttonText)
+    $but.click(function() {
+      genButtonFns.forEach(function(fn){
+        fn(config.buttonMarker)
+      })
+    })
+  }
+  fns.onGenButtonClick = function(fn) {
+    genButtonFns.push(fn)
+  }
+
+  // Control - dropdown and action button
+  var dropDownAndActionFns = []
+  fns.dropDownAndAction = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    //console.log(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+    $ctlDiv.css('display', 'flex')
+
+    var $sel = $('<select>').appendTo($ctlDiv)
+    $sel.attr('id', id + '-sel')
+    $sel.css('flex', '20')
+    $sel.css('margin-right', '0.5em')
+
+    var $but = $('<button>').appendTo($ctlDiv)
+    $but.css('flex', '1')
+    $but.attr('id', id + '-but')
+    $but.text(config.actionText)
+
+    $but.click(function() {
+      dropDownAndActionFns.forEach(function(fn){
+        fn(id)
+      })
+    })
+  }
+  fns.onDropDownAndActionClick = function(fn) {
+    dropDownAndActionFns.push(fn)
+  }
+
+  // Control - header and text
+  fns.headerAndText = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+
+    if (config.header) {
+      $header = $('<div>').appendTo($ctlDiv)
+      $header.css('font-size', fns.getConfigOpt(config, 'headerFontSize', 16))
+      $header.css('margin', '0.3em 0')
+      $header.css('font-weight', 'bold')
+      $header.html(config.header)
+    }
+    if (config.text) {
+      $text = $('<div>').appendTo($ctlDiv)
+      $text.html(config.text)
+    }
+  }
+
+  var monthAndNFns = []
+  fns.monthAndN = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+    $ctlDiv.css('display', 'inline-block')
+    $ctlDiv.css('margin-bottom', '0.3em')
+    
+    var $label = $('<label>').appendTo($ctlDiv)
+    $label.attr('for', id + '-top-n')
+    $label.text('N')
+    $label.css('width', 'fit-content')
+    $label.css('vertical-align', 'initial')
+    $label.css('margin-right', '0.5em')
+    $label.css('font-weight', 'normal')
+
+    var $select = $('<input>').appendTo($ctlDiv)
+    $select.attr('type', 'number')
+    $select.attr('id', id + '-top-n')
+    $select.attr('name', id + '-top-n')
+    $select.attr('class', 'top-n')
+    $select.attr('max', 20)
+    $select.attr('min', 2)
+    $select.css('width', '3em')
+    $select.val(10)
+
+    $label = $('<label>').appendTo($ctlDiv)
+    $label.attr('for', id + '-top-n-month')
+    $label.text('Month')
+    $label.css('width', 'fit-content')
+    $label.css('vertical-align', 'initial')
+    $label.css('margin-right', '0.5em')
+    $label.css('margin-left', '0.5em')
+    $label.css('font-weight', 'normal')
+  
+    var $select2 = $('<select>').appendTo($ctlDiv)
+    $select2.attr('id', id + '-top-n-month')
+    $select2.attr('name', id + '-top-n-month')
+    $select2.attr('class', 'top-n-month')
+    $select2.css('width', '4em')
+    $select2.css('margin-right', '0.5em')
+
+    var months = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    months.forEach(function(m) {
+      var $opt = $('<option>').appendTo($select2)
+      $opt.attr('value', m)
+      $opt.text(m)
+    })
+    $select2.val('All')
+
+    var $but = $('<button>').appendTo($ctlDiv)
+    $but.attr('id', id + '-top-n-but')
+    $but.text('Update')
+    $but.click(function() {
+      monthAndNFns.forEach(function(fn){
+        fn()
+      })
+    })
+  }
+  fns.getMonthAndN = function(config) {
+    return [getValue(config, 'top-n'), getValue(config, 'top-n-month')]
+  }
+  fns.onMonthAndNClick = function(fn) {
+    monthAndNFns.push(fn)
+  }
+  
   // Generate ES filters from control values
-  fns.getFiltersFromControls = function(config, tvk, taxon, group, interactive) {
+  fns.getFiltersFromControls = function(config, tvk, taxon, group, els) {
     // This function can be called from functions implementing ES queries.
     // Creates ES filters from the control values.
 
-    // The interactive flag is passed as an argument. If not set to true
-    // then extra filters added to ES queries.
+    // The interactive elements argument is an object which specifies which
+    // elements of the controls to include. Below we set the defaults of all
+    // elements to true, so they have to be explicitly excluded if not wanted.
+    var elsDefaults = {
+      status: true,
+      years: true
+    }
+    var elements = {...elsDefaults, ...els}
 
     // Init filters
     if (tvk) {
       var filtersMust = [
-        {"query_type": "match_phrase", "field": "taxon.taxa_taxon_list_id", "value": tvk},
+        {"query_type": "match_phrase", "field": "taxon.accepted_taxon_id", "value": tvk},
       ]
     } else if (group) {
       var filtersMust = [
@@ -488,29 +663,27 @@
     var filtersMustNot = []
 
     // Status filters
-    if (fns.isAcceptedOnlyChecked(config)) {
-      if (!interactive) {
+    // Records with no status are always excluded (at request of Martin Harvey)
+    filtersMustNot.push({"query_type": "match_phrase","field": "identification.verification_status","value": ""})
+    if (elements.status) {
+      if (fns.isAcceptedOnlyChecked(config)) {
         filtersMust.push({"query_type": "match_phrase", "field": "identification.verification_status", "value": "V"})
-      }
-    } else {
-      // Records with no status are always excluded (at request of Martin Harvey)
-      filtersMustNot.push({"query_type": "match_phrase","field": "identification.verification_status","value": ""})
-      if (!interactive) {
-        if (fns.isExcludeNotAcceptedChecked(config)) {
-          filtersMustNot.push({"query_type": "match_phrase", "field": "identification.verification_status", "value": "R"})
-        }
+      } else if (fns.isExcludeNotAcceptedChecked(config)) {
+        filtersMustNot.push({"query_type": "match_phrase", "field": "identification.verification_status", "value": "R"})
       }
     }
 
     // Year filters
-    var range = fns.getYearRange(config)
-    var startYear = range[0]
-    var endYear = range[1]
-    if (startYear || endYear) {
-      if (!startYear) startYear = 0
-      if (!endYear) endYear = new Date().getFullYear()
-      //console.log("event.year:[" + startYear + " TO " + endYear + "]")
-      filtersMust.push({"query_type": "query_string","field": "event.year","value": "event.year:[" + startYear + " TO " + endYear + "]"})
+    if (elements.years) {
+      var range = fns.getYearRange(config)
+      var startYear = range[0]
+      var endYear = range[1]
+      if (startYear || endYear) {
+        if (!startYear) startYear = 0
+        if (!endYear) endYear = new Date().getFullYear()
+        //console.log("event.year:[" + startYear + " TO " + endYear + "]")
+        filtersMust.push({"query_type": "query_string","field": "event.year","value": "event.year:[" + startYear + " TO " + endYear + "]"})
+      }
     }
 
     return [filtersMust, filtersMustNot]
@@ -519,7 +692,7 @@
   // Get busy control
   fns.getBusy = function($el) {
     // Busy indicator
-    return $('<div class="lds-ellipsis" style="display: none"><div></div><div></div><div></div><div></div></div>').appendTo($el)
+    return $('<div class="lds-ellipsis" style="display: none;"><div></div><div></div><div></div><div></div></div>').appendTo($el)
   }
 
   // Helper functions
@@ -580,7 +753,6 @@
     } else {
       ctls = []
     }
-
     // Set variable if a control of passed in class is
     // checked. There could be more than one relevant control,
     // though it wouldn't makes sense, and we account for that.

@@ -1,67 +1,71 @@
 (function ($, fns, data) {
 
-  var responseData, phen1
-  
   fns.trend = function(id, config) {
-    
+
     var $div = fns.topDivConfig(config)
     $div.appendTo($('#' + id))
 
-    var taxaFromGroup = []
+    var trendChart
+    var dataAllTaxa = []
+    var dataSelectedTaxa = []
+    var dataSelectedTaxaNames = []
+    var selectedTaxon, selectedGroup
 
     // Busy indicator
     var $busy = fns.getBusy($div)
-
-    // Species selection
-    $('<div id="' + id + '-trend-chart-sp-select">').appendTo($div)
-    speciesSelect(id + '-trend-chart-sp-select')
 
     $('<div id="' + id + '-trend-chart">').appendTo($div)
 
     // GUI Phenology
     var chartConfig = {
       selector: "#" + id + "-trend-chart",
-      title: 'Trend chart 1',
+      //title: 'Trend chart 1',
       titleFontSize: 13,
       legendFontSize: 12,
+      taxonLabelFontSize: 13,
       axisLeftLabel: 'Number of records (bars)',
       axisRightLabel: 'Percentage of group records (line)',
+      styleCounts: {legend: 'Records for selected taxon'},
+      styleProps: {legend: '% of all taxon group records'},
+      //minYear: 1980,
+      //maxYear: 2020,
       data: [],
-      taxa: ['taxon'],
+      taxa: [''],
       width: 300,
       height: 200,
       perRow: 1,
       expand: true,
       showLegend: true,
+      interactivity: 'mousemove',
     }
     chartConfig = {...chartConfig, ...fns.parseChartConfig(config)}
-    trend = brccharts.trend(chartConfig)
+    trendChart = brccharts.trend(chartConfig)
 
     // Get the data from ES
-    var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
+    var $cs1 = $('<div id="' + id + '-cs1-div"></div>').appendTo($('#' + id))
+    var $cs2 = $('<div id="' + id + '-cs2-div"></div>').appendTo($('#' + id))
 
-    fns.addTaxonSelectedFn(function (usedTaxonSelId, tvk, taxon, group) {
+    fns.addTaxonSelectedFn(function (usedTaxonSelId, tvk, taxon, group, groupid) {
 
-      console.log('taxon selected', usedTaxonSelId, config.taxonSelControl)
-
-      if (usedTaxonSelId === config.taxonSelControl) {
+      if (usedTaxonSelId === config.taxonSelControlGroup) {
 
         $busy.show()
 
+        // Set the taxon_group_id API taxon search param for the associated species selection
+        // controls and store the group name for elsewhere.
+        $('#' + config.taxonSelControlTaxon).prop('data-param-override-fn')({taxon_group_id: groupid})
+        selectedGroup = group
+        
         // Set up filters in response to controls
-        var filters = fns.getFiltersFromControls(config, tvk, taxon, group, false)
-
-        //console.log('filters', filters)
+        var filters = fns.getFiltersFromControls(config, tvk, taxon, group, {years: false})
 
         indiciaData.esSources.push({
           size: 0,
-          id: "source-" + id,
+          id: "source-" + id + "-group",
           mode: "compositeAggregation",
           uniqueField: "event.year",
-          uniqueField: "taxon.accepted_name",
           fields: [
             "event.year",
-            "taxon.accepted_name"
           ],
           filterBoolClauses: {
             "must": filters[0],
@@ -74,197 +78,211 @@
         // because if they are added for a source that doesn't
         // get added to indiciaData.esSources, then hooking up
         // the data sources in the BRC vis module JS fails.
-        $cs.addClass('idc-output')
-        $cs.addClass('idc-output-customScript')
-        var source = {}
-        source["source-" + id] = ''
-        $cs.idcCustomScript({
-          id: 'custom-script-' + id,
-          source: source,
-          functionName: id,
+        $cs1.addClass('idc-output')
+        $cs1.addClass('idc-output-customScript')
+        var source1 = {}
+        source1["source-" + id + "-group"] = ''
+        $cs1.idcCustomScript({
+          id: 'custom-script-' + id + "-group",
+          source: source1,
+          functionName: id + "-group",
+        })
+      }
+
+      if (usedTaxonSelId === config.taxonSelControlTaxon && dataSelectedTaxaNames.indexOf(taxon) === -1) {
+
+        $busy.show()
+
+        selectedTaxon = taxon
+
+        // Set up filters in response to controls
+        var filters = fns.getFiltersFromControls(config, tvk, taxon, group, {years: false})
+
+        indiciaData.esSources.push({
+          size: 0,
+          id: "source-" + id + "-taxon",
+          mode: "compositeAggregation",
+          uniqueField: "event.year",
+          fields: [
+            "event.year",
+          ],
+          filterBoolClauses: {
+            "must": filters[0],
+            "must_not": filters[1]
+          },
+          proxyCacheTimeout: drupalSettings.brc_vis.indiciaUserId ? 60 : 7200
+        })
+
+        // The ES output classes must be added conditionally
+        // because if they are added for a source that doesn't
+        // get added to indiciaData.esSources, then hooking up
+        // the data sources in the BRC vis module JS fails.
+        $cs2.addClass('idc-output')
+        $cs2.addClass('idc-output-customScript')
+        var source2 = {}
+        source2["source-" + id + "-taxon"] = ''
+        $cs2.idcCustomScript({
+          id: 'custom-script-' + id + "-taxon",
+          source: source2,
+          functionName: id + "-taxon",
         })
       }
     })
 
-    // Add the Indicia ES custom callback function to create
-    // the chart when the query response is returned.
-    indiciaFns[id]  = function (el, sourceSettings, response) {
+    // Add the Indicia ES custom callback function to
+    // respond to taxon group selection.
+    indiciaFns[id + "-group"]  = function (el, sourceSettings, response) {
 
-      console.log(response)
+      //console.log('ES callback ' + id + '-group called')
 
-      taxaFromGroup = []
-      response.aggregations._rows.buckets.forEach(function(taxonYear){
-        if (taxaFromGroup.indexOf(taxonYear.key['taxon-accepted_name']) === -1){
-          taxaFromGroup.push(taxonYear.key['taxon-accepted_name'])
+      // Generate array of total number of records per year
+      dataAllTaxa = response.aggregations._rows.buckets.filter(function(y){return y.key['event-year']}).map(function(y) {
+        return {
+          taxon: 'other',
+          year: y.key['event-year'],
+          count: y.doc_count //Later, totals for specific taxon will be subtracted
         }
       })
 
-      console.log('taxaFromGroup', taxaFromGroup)
+      // Clear Trend charts and associated controls
+      dataSelectedTaxa = []
+      dataSelectedTaxaNames = []
+      trendChart.setChartOpts({
+        data: [],
+        taxa: [''],
+        group: [],
+      })
+      var $selCtl = $('#' + config.taxonRemoveCtlId + ' select')
+      $selCtl.empty()
+      var $taxSel = $('#' + config.taxonSelControlTaxon + '-input')
+      $taxSel.val('')
 
       // Remove any ES output classes otherwise when taxon
       // selector action buttons cause other JS code to execute
       // ES queries, but not this one, then these classes will
       // mess up the hooking up of those data sources.
-      $cs.removeClass('idc-output')
-      $cs.removeClass('idc-output-customScript')
+      $cs1.removeClass('idc-output')
+      $cs1.removeClass('idc-output-customScript')
 
-      //console.log('ES callback ' + id + ' called')
-        
-      // // Filter out data that has no week data
-      // responseData = response.aggregations._rows.buckets.filter(function(w) {return w.key['event-week']})
-
-      // // Convert any deprecated statuses to C (not reviewed)
-      // responseData.forEach(function(w){
-      //   var status = w.key['identification-verification_status']
-      //   if (status !== 'V' && status !== 'C' && status !== 'R') {
-      //     w.key['identification-verification_status'] = 'C'
-      //   }
-      // })
+      // Update control text
+      $('#' + config.ctls + '-group-display').html('<b>' + selectedGroup + '</b> selected')
+      // Ensure that taxon control are enabled
+      $('#' + config.taxonSelControlTaxon).prop('data-enabled-input-fn')(true)
 
       $busy.hide()
-      //plotData()
     }
 
-    function plotData(status) {
-  
-      // Sometimes can get here when responseData is undefined
-      if (!responseData) return
+    // Add the Indicia ES custom callback function to respond
+    // to taxon selection.
+    indiciaFns[id + "-taxon"]  = function (el, sourceSettings, response) {
 
-      //console.log('responseData', responseData)
+      //console.log('ES callback ' + id + '-taxon called')
 
-      var dataFilter = [...responseData]
-      var statusCode
-      if (status) {
-        statusCode = dataVer.find(function(d){return status === d.name}).code
-      }
-
-      // Filter based on inclusion/exclusion checkboxes
-      if (fns.isAcceptedOnlyChecked(config)) {
-        dataFilter = dataFilter.filter(function(h){
-          return h.key['identification-verification_status'] === 'V'
-        })
-      }
-      if (fns.isExcludeNotAcceptedChecked(config)) {
-        dataFilter = dataFilter.filter(function(h){
-          //return h.key['identification-verification_status'] === 'V' || h.key['identification-verification_status'] === 'C'
-          return h.key['identification-verification_status'] !== 'R'
-        })
-      }
-      
-      // Filter based on status/substatus
-      if (statusCode || statusCode === 0) {
-        dataFilter = dataFilter.filter(function(h){
-          return h.key['identification-verification_status'] === statusCode || h.key['identification-verification_substatus'] === statusCode
-        })
-      }
-
-      // Prepare the metrics
-      var metrics
-      if (statusCode || statusCode === 0) {
-        var statusVer = dataVer.find(function(d){return statusCode === d.code})
-        metrics = [{
-          prop: String(statusCode), 
-          label: status, 
-          colour: statusVer.colour
-        }]
-      } else {
-        var statusType = fns.getStatusSubstatusRadioSelection(config)
-        var set = statusType === 'status' ? 1 : 2
-        metrics = dataVer.filter(function(dv) {return dv.set === set}).map(function(dv) {
-          return {
-            prop: String(dv.code), 
-            label: dv.name, 
-            colour: dv.colour
-          }
-        })
-        var all = {
-          prop: 'all', 
-          label: 'All', 
-          colour: 'blue'
+      // Create data of format required by trend chart (includes all taxa)
+      // Includes a filter to remove null years
+      var dataTaxon = response.aggregations._rows.buckets.filter(function(y){return y.key['event-year']}).map(function(y) {
+        return {
+          taxon: selectedTaxon,
+          year: y.key['event-year'],
+          count: y.doc_count
         }
-        metrics = [all, ...metrics]
-      }
+      })
+      dataSelectedTaxa = [...dataSelectedTaxa, ...dataTaxon]
+      dataSelectedTaxaNames.push(selectedTaxon)
+      var dataOtherTaxa = getOtherTaxa()
 
-      // Generate the phenology data
-      var phen1Data = []
-      for (i=1; i<=53; i++) {
-        var w = {
-          taxon: 'taxon',
-          week: i,
-          all: 0,
-        }
-        dataVer.forEach(function(dv){
-          w[String(dv.code)] = 0
-        })
-        phen1Data.push (w)
-      }
+      // Get year range
+      var range = fns.getYearRange(config)
+      var startYear = range[0]
+      var endYear = range[1]
+      startYear = startYear ? Number(startYear) : 2000
+      endYear = endYear ? Number(endYear) : new Date().getFullYear()
 
-      dataFilter.forEach(function(d) {
-        var status = d.key['identification-verification_status'] 
-        var substatus = d.key['identification-verification_substatus'] 
-        var week = d.key['event-week'] 
-        if (status) {
-          phen1Data[week-1][status] += d.doc_count
-        }
-        if (substatus || substatus === 0) {
-          phen1Data[week-1][String(substatus)] += d.doc_count
-        }
-        phen1Data[week-1]['all'] += d.doc_count
+      // Update the trend chart
+      trendChart.setChartOpts({
+        data: [...dataOtherTaxa, ...dataSelectedTaxa],
+        taxa: dataSelectedTaxaNames,
+        group: [...dataSelectedTaxaNames, 'other'],
+        minYear: startYear,
+        maxYear: endYear
       })
 
-      // Go through the metrics and remove any that do not have any data
-      metrics = metrics.filter(function(m){
-        var count = phen1Data.reduce(function(a, d) { 
-          return a += d[m.prop]
-        }, 0)
-        return count > 0
-      })
+      // Add the name of the selected taxon to the remove taxon control
+      var $selCtl = $('#' + config.taxonRemoveCtlId + ' select')
+      var $opt = $('<option>').appendTo($selCtl)
+      $opt.text(selectedTaxon)
+      $opt.attr("value", selectedTaxon)
 
-      // Remove 'all' from metrics if there are only two items
-      if (metrics.length === 2) {
-        metrics = metrics.filter(function(m){
-          return m.prop !== 'all'
-        })
-      }
-      
-      // Update the phenology chart
-      phen1.setChartOpts({
-        data: phen1Data,
-        metrics: metrics,
-      })
+      // Remove any ES output classes otherwise when taxon
+      // selector action buttons cause other JS code to execute
+      // ES queries, but not this one, then these classes will
+      // mess up the hooking up of those data sources.
+      $cs2.removeClass('idc-output')
+      $cs2.removeClass('idc-output-customScript')
+
+      $busy.hide()
     }
 
-
-    function speciesSelect(id) {
-
-      // Autocomplete species select (from group taxa)
-      const $wrapper = $('<div>').appendTo($('#' + id))
-      $wrapper.css('margin', '0.3em 0')
-      $wrapper.attr('class', 'autoComplete_wrapper')
-      const $input = $('<input>').appendTo($wrapper)
-      $input.attr('id', id + '-input')
-      $input.attr('type', 'text')
-      $input.attr('tabindex', '1')
-
-      const autoCompleteGroup = new autoComplete({
-        selector: '#' + id + '-input',
-        placeHolder: 'Type taxon from group',
-        submit: true,
-        data: {src: async function() {return taxaFromGroup}},  
-        // resultsList: {
-        //   maxResults: 50,
-        // },
-        // events: {
-        //   input: {
-        //     focus: () => {
-        //       if (autoCompleteGroup.input.value.length) autoCompleteGroup.start()
-        //     },
-        //     selection: (event) => {
-        //       console.log('selected', event.detail.selection.value.title)
-        //     }
-        //   }
-        // }
+    function getOtherTaxa() {
+      // For the trend chart to work, we need at least two 'taxa' because
+      // the sum of records in each year for the taxa allow the trend (% of all records)
+      // to be calculated. So we create a dummy taxon from the yearly totals, and subtract
+      // the counts for selected taxa.
+      var dataOtherTaxa = dataAllTaxa.map(function(o){
+        const n = {...o}
+        var matches = dataSelectedTaxa.filter(function(t) {return o.year === t.year})
+        matches.forEach(function(t) {
+          n.count = n.count - t.count
+        })
+        return n
       })
+      return dataOtherTaxa
     }
+
+    function getYearRange() {
+      var range = fns.getYearRange(config)
+      var startYear = range[0]
+      var endYear = range[1]
+      startYear = startYear ? Number(startYear) : 2000
+      endYear = endYear ? Number(endYear) : new Date().getFullYear()
+
+      return [startYear, endYear]
+    }
+
+    $(document).ready(function () {
+      // Inits
+      // Initially taxon selection controls are disabled before a 
+      // group selected.
+      var fn = $('#' + config.taxonSelControlTaxon).prop('data-enabled-input-fn')
+      fn(false)
+    })
+
+    // React to interactive control actions
+    fns.onGenButtonClick(function(marker){
+      if (marker === 'update') {
+        var years = getYearRange()
+        trendChart.setChartOpts({
+          minYear: years[0],
+          maxYear: years[1]
+        })
+      }
+    })
+
+    fns.onDropDownAndActionClick(function(id){
+      if (id = config.taxonRemoveCtlId) {
+        var removeTaxon = $('#' + config.taxonRemoveCtlId + ' select').find(":selected").text()
+        $('#' + config.taxonRemoveCtlId + ' select').find(":selected").remove()
+
+        dataSelectedTaxaNames = dataSelectedTaxaNames.filter(function(t){return t !== removeTaxon})
+        dataSelectedTaxa = dataSelectedTaxa.filter(function(d){return d.taxon !== removeTaxon})
+        var dataOtherTaxa = getOtherTaxa()
+
+        trendChart.setChartOpts({
+          data: [...dataOtherTaxa, ...dataSelectedTaxa],
+          taxa: dataSelectedTaxaNames.length ? dataSelectedTaxaNames : [''],
+          group: dataSelectedTaxaNames.length ? [...dataSelectedTaxaNames, 'other'] : [],
+        })
+      }
+    })
   }
 })(jQuery, drupalSettings.brc_vis.fns, drupalSettings.brc_vis.data)
