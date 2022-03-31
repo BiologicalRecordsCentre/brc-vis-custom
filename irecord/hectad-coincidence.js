@@ -264,7 +264,7 @@
         // Set up filters in response to controls
         var filters = fns.getFiltersFromControls(config, tvk, taxon, group, false)
 
-        // Store verificatio status filters for use with image download text
+        // Store verification status filters for use with image download text
         if (iTaxon === 1) {
           verificationFiltersTaxon1 = [fns.isAcceptedOnlyChecked(config), fns.isExcludeNotAcceptedChecked(config)]
         } else {

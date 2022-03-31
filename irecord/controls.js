@@ -54,8 +54,6 @@
     var $div = fns.topDivConfig(config).appendTo($('#' + id))
     $('<div id="' + id + '-ctls">').appendTo($div)
 
-    //$('<p>The two filter cheboxes below are applied to the taxa data when loaded.</p>').appendTo($('#' + id + '-ctls'))
-
     fns.acceptedOnlyControl(id + '-ctls', config)
     fns.excludeNotAcceptedControl(id + '-ctls', config)
 
@@ -104,6 +102,61 @@
     $hr2.css('margin', '5px 0')
   }
 
+  fns.vcTetradControls = function(id, config) {
+
+    // This is a wrapper control which can be used
+    // for pre-created collection of controls
+    // (which themselves can be added individually
+    // from blocks)
+    var $div = fns.topDivConfig(config).appendTo($('#' + id))
+    $('<div id="' + id + '-ctls">').appendTo($div)
+
+    // Remove any top level style stuff because
+    // it shouldn't need to be applied to all sub-blocks
+    config['top-div-style'] = ''
+
+    // VC dropdown
+    //fns.vcDropDownAndAction(id + '-ctls', config)
+
+    // Accepted only and exclude not accepted checkboxes
+    fns.acceptedOnlyControl(id + '-ctls', config)
+    fns.excludeNotAcceptedControl(id + '-ctls', config)
+
+    var $hr1 = $('<hr>').appendTo($('#' + id + '-ctls'))
+    $hr1.css('margin', '5px 0')
+
+    fns.mapClickOutput(id + '-ctls', config)
+
+    var $hr1 = $('<hr>').appendTo($('#' + id + '-ctls'))
+    $hr1.css('margin', '5px 0')
+
+    fns.levelRadio(id + '-ctls', config)
+    fns.showVcGrid(id + '-ctls', config) 
+    fns.dotRadio(id + '-ctls', config) 
+    fns.opacitySlider(id + '-ctls', config)
+    fns.vcDotColourSelect(id + '-ctls', config) 
+    fns.vcDotColourBreaksSelect(id + '-ctls', config) 
+    fns.vcLegendPositionSelect(id + '-ctls', config) 
+
+    var $hr2 = $('<hr>').appendTo($('#' + id + '-ctls'))
+    $hr2.css('margin', '0 0 10px 0')
+
+    fns.downloadButtons(id + '-ctls', config)
+  }
+
+  // Control - map click output
+  fns.mapClickOutput = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+    $ctlDiv.css('display', 'inline-block')
+    
+    var $div = $('<div>').appendTo($ctlDiv)
+    $div.html('Info at clicked dot: <span class="dot-info"><span>')
+  }
+  fns.setMapClickOutput = function(config, html) {
+    setHtml(config, 'dot-info', html)
+  }
+
   // Control - use only Accepted records
   var onChangeAcceptedOnly = []
   fns.acceptedOnlyControl = function(id, config) {
@@ -126,6 +179,58 @@
   }
   fns.onExcludeNotAcceptedChecked = function(fn) {
     onChangeExcludeNotAccepted.push(fn)
+  }
+
+  // Control - 10km grid toggle
+  var onChangeShowVcGrid = []
+  fns.showVcGrid = function(id, config) {
+    makeCheckbox(config, id, 'show-vc-grid', 'Show 10 km grid', true, onChangeShowVcGrid)
+  }
+  fns.isShowVcGridChecked = function(config) {
+    return isChecked(config, 'show-vc-grid')
+  }
+  fns.onShowVcGridChecked = function(fn) {
+    onChangeShowVcGrid.push(fn)
+  }
+
+  // Control - opacity slider
+  var onOpacitySliderFns = []
+  fns.opacitySlider = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+    $ctlDiv.css('display', 'inline-block')
+    
+    var $label = $('<label>').appendTo($ctlDiv)
+    $label.attr('for', id + '-opacity')
+    $label.text('Dot opacity:')
+    $label.css('width', 'fit-content')
+    $label.css('vertical-align', 'initial')
+    $label.css('margin-right', '0.5em')
+    $label.css('font-weight', 'normal')
+
+    var $opacity = $('<input>').appendTo($ctlDiv)
+    $opacity.attr('type', 'range')
+    $opacity.attr('id', id + '-opacity')
+    $opacity.attr('class', 'opacity')
+    $opacity.attr('max', 1)
+    $opacity.attr('min', 0)
+    $opacity.attr('step', 0.1)
+    $opacity.attr('value', 1)
+    $opacity.css('width', '120px')
+    $opacity.css('display', 'inline-block')
+    $opacity.css('vertical-align', 'middle')
+
+    $opacity.on('change', function() {
+      onOpacitySliderFns.forEach(function(fn){
+        fn(id)
+      })
+    })
+  }
+  fns.getOpacitySliderValue = function(config) {
+    return getValue(config, 'opacity')
+  }
+  fns.onOpacitySliderChange = function(fn) {
+    onOpacitySliderFns.push(fn)
   }
 
   // Control - taxon 1 and taxon 2 checkboxes
@@ -187,7 +292,6 @@
     $select.val(config.maxYearInit)
   }
   fns.getYearRange = function(config) {
-
     return [getValue(config, 'year-start'), getValue(config, 'year-end')]
   }
 
@@ -360,6 +464,58 @@
   }
   fns.onDotRadioSelection = function(fn) {
     onChangeDotRadio.push(fn)
+  }
+
+  // Control - monad/tetrad radio buttons
+  var onChangeLevelRadio = []
+  fns.levelRadio = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+
+    $('<span>Level:</span>').appendTo($ctlDiv)
+    var $radOptTetrad = $('<input type="radio">').appendTo($ctlDiv)
+    $radOptTetrad.attr('id', id + '-level-tetrad')
+    $radOptTetrad.attr('name', id + '-level')
+    $radOptTetrad.css('margin', '0 0.3em 0 0.5em')
+    $radOptTetrad.css('vertical-align', 'middle')
+    $radOptTetrad.attr('value', 'tetrad')
+    $radOptTetrad.attr('class', 'level-rad')
+    $radOptTetrad.attr('checked', true)
+    
+    var $labelTetrad = $('<label>').appendTo($ctlDiv)
+    $labelTetrad.attr('for', id + '-level-tetrad')
+    $labelTetrad.text('Tetrads')
+    $labelTetrad.css('width', 'fit-content')
+    $labelTetrad.css('vertical-align', 'baseline')
+    $labelTetrad.css('font-weight', 'normal')
+
+    var $radOptMonad = $('<input type="radio">').appendTo($ctlDiv)
+    $radOptMonad.attr('id', id + '-level-monad')
+    $radOptMonad.attr('name', id + '-level')
+    $radOptMonad.css('margin', '0 0.3em 0 0.5em')
+    $radOptMonad.css('vertical-align', 'middle')
+    $radOptMonad.attr('value', 'monad')
+    $radOptMonad.attr('class', 'level-rad')
+
+    var $labelMonad = $('<label>').appendTo($ctlDiv)
+    $labelMonad.attr('for', id + '-level-monad')
+    $labelMonad.text('Monads')
+    $labelMonad.css('width', 'fit-content')
+    $labelMonad.css('vertical-align', 'baseline')
+    $labelMonad.css('font-weight', 'normal')
+
+    $('input[name="' + id + '-level"]').change(function() {
+      onChangeLevelRadio.forEach(function(fn){
+        var level = fns.getLevelRadioSelection(config)
+        fn(level)
+      })
+    })
+  }
+  fns.getLevelRadioSelection = function(config) {
+    return getRadioValue(config, 'level-rad')
+  }
+  fns.onLevelRadioSelection = function(fn) {
+    onChangeLevelRadio.push(fn)
   }
 
   // Control - dot colours
@@ -547,6 +703,329 @@
   }
   fns.onDropDownAndActionClick = function(fn) {
     dropDownAndActionFns.push(fn)
+  }
+
+  // Control - VC colour scheme
+  var vcDotColourSelectFns = []
+  fns.vcDotColourSelect = function(id, config) {
+    var colours = [
+      {
+        label: 'None',
+        colours: []
+      },
+      {
+        label: 'YlOrRd',
+        colours: ['#fed976','#feb24c','#fd8d3c','#f03b20','#bd0026'],
+        reverse: false
+      },
+      {
+        label: 'Reds',
+        colours: ['#fcbba1','#fc9272','#fb6a4a','#de2d26','#a50f15'],
+        reverse: false
+      },
+      {
+        label: 'YlGnBu',
+        colours: ['#c7e9b4','#7fcdbb','#41b6c4','#2c7fb8','#253494'],
+        reverse: false
+      },
+      {
+        label: 'RdPu',
+        colours: ['#fcc5c0','#fa9fb5','#f768a1','#c51b8a','#7a0177'],
+        reverse: false
+      }
+    ]
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+
+    var $label = $('<label>').appendTo($ctlDiv)
+    $label.attr('for', id + '-vc-colours')
+    $label.text('Colours:')
+    $label.css('width', 'fit-content')
+    $label.css('vertical-align', 'initial')
+    $label.css('margin-right', '0.5em')
+    $label.css('font-weight', 'normal')
+
+    var $sel = $('<select>').appendTo($ctlDiv)
+    $sel.attr('id', id + '-vc-colours')
+    $sel.attr('class', 'vc-colours')
+  
+    colours.forEach(function(c){
+      if (c.reverse) c.colours.reverse()
+      var $opt = $('<option>').appendTo($sel)
+      $opt.attr('value', c.colours.join(','))
+      $opt.text(c.label)
+    })
+
+    $sel.on('change', function() {
+      vcDotColourSelectFns.forEach(function(fn){
+        fn(id)
+      })
+    })
+  }
+  fns.onVcDotColourSelect = function(fn) {
+    vcDotColourSelectFns.push(fn)
+  }
+  fns.getVcDotColourSelect = function(config) {
+    // Get any controls associated with the block that
+    // owns this config.
+    var ctls = fns.getConfigOpt(config, 'ctls', '')
+    if (ctls) {
+      ctls = ctls.split(' ')
+    } else {
+      ctls = []
+    }
+    // Set variable if controls of passed in class are found.
+    // There could be more than one relevant control,
+    // though it wouldn't makes sense, and we account for that.
+    var ret = null
+    ctls.forEach(function(ctl) {
+      if (!ret) {
+        var strColours = $('#' + ctl).find('.vc-colours').first().val()
+        if (strColours) {
+          ret = strColours.split(',')
+        } else {
+          ret = []
+        }
+      }
+    })
+    return ret
+  }
+
+  // Control - VC colour breaks
+  var vcDotColourBreaksSelectFns = []
+  fns.vcDotColourBreaksSelect = function(id, config) {
+    var breaks = [
+      {
+        label: '1, 2 , 3, 4, >4',
+        breaks: [1, 2, 3, 4]
+      },
+      {
+        label: '1, 2-5, 6-10, 11-15, >15',
+        breaks: [1, 5, 10, 15],
+      },
+      {
+        label: '1-5, 6-10, 11-15, 15-20, >20',
+        breaks: [5, 10, 15, 20],
+      },
+      {
+        label: '1-10, 11-50, 51-100, 100-200, >200',
+        breaks: [10, 50, 100, 200],
+      },
+      {
+        label: '1-10, 11-50, 51-200, 201-500, >500',
+        breaks: [10, 50, 200, 500],
+      }
+    ]
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+
+    var $label = $('<label>').appendTo($ctlDiv)
+    $label.attr('for', id + '-vc-colour-breaks')
+    $label.text('Classes:')
+    $label.css('width', 'fit-content')
+    $label.css('vertical-align', 'initial')
+    $label.css('margin-right', '0.5em')
+    $label.css('font-weight', 'normal')
+
+    var $sel = $('<select>').appendTo($ctlDiv)
+    $sel.attr('id', id + '-vc-colour-breaks')
+    $sel.attr('class', 'vc-colour-breaks')
+  
+    breaks.forEach(function(b){
+      var $opt = $('<option>').appendTo($sel)
+      $opt.attr('value', b.breaks.join(','))
+      $opt.text(b.label)
+    })
+
+    $sel.on('change', function() {
+      vcDotColourBreaksSelectFns.forEach(function(fn){
+        fn(id)
+      })
+    })
+  }
+  fns.onVcDotColourBreaksSelect = function(fn) {
+    vcDotColourBreaksSelectFns.push(fn)
+  }
+  fns.getVcDotColourBreaksSelect = function(config) {
+    // Get any controls associated with the block that
+    // owns this config.
+    var ctls = fns.getConfigOpt(config, 'ctls', '')
+    if (ctls) {
+      ctls = ctls.split(' ')
+    } else {
+      ctls = []
+    }
+    // Set variable if controls of passed in class are found.
+    // There could be more than one relevant control,
+    // though it wouldn't makes sense, and we account for that.
+    var ret = null
+    ctls.forEach(function(ctl) {
+      if (!ret) {
+        var strBreaks = $('#' + ctl).find('.vc-colour-breaks').first().val()
+        ret = strBreaks.split(',').map(function(b){return Number(b)})
+      }
+    })
+    return ret
+  }
+
+  // Control - Legend position
+  var vcLegendPositionFns = []
+  fns.vcLegendPositionSelect = function(id, config) {
+  
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+
+    var $label = $('<label>').appendTo($ctlDiv)
+    $label.attr('for', id + '-vc-legend-pos')
+    $label.text('Legend:')
+    $label.css('width', 'fit-content')
+    $label.css('vertical-align', 'initial')
+    $label.css('margin-right', '0.5em')
+    $label.css('font-weight', 'normal')
+
+    var $sel = $('<select>').appendTo($ctlDiv)
+    $sel.attr('id', id + '-vc-legend-pos')
+    $sel.attr('class', 'vc-legend-pos')
+  
+    var positions = ['top left', 'top right', 'bottom left', 'bottom right']
+    positions.forEach(function(p){
+      var $opt = $('<option>').appendTo($sel)
+      $opt.attr('value', p)
+      $opt.text(p)
+    })
+
+    $sel.on('change', function() {
+      vcLegendPositionFns.forEach(function(fn){
+        fn(id)
+      })
+    })
+  }
+  fns.onLegendPositionSelect = function(fn) {
+    vcLegendPositionFns.push(fn)
+  }
+  fns.getLegendPosition = function(config) {
+    // Get any controls associated with the block that
+    // owns this config.
+    var ctls = fns.getConfigOpt(config, 'ctls', '')
+    if (ctls) {
+      ctls = ctls.split(' ')
+    } else {
+      ctls = []
+    }
+    // Set variable if controls of passed in class are found.
+    // There could be more than one relevant control,
+    // though it wouldn't makes sense, and we account for that.
+    var ret = null
+    ctls.forEach(function(ctl) {
+      if (!ret) {
+        ret = $('#' + ctl).find('.vc-legend-pos').first().val()
+      }
+    })
+    return ret
+  }
+
+  // Control - VC dropdown and action button
+  var vcDropDownAndActionFns = []
+  fns.vcDropDownAndAction = function(id, config) {
+    var $div = fns.topDivConfig(config)
+    var $ctlDiv = $div.appendTo($('#' + id))
+    //$ctlDiv.css('display', 'flex')
+
+    var $sel = $('<select>').appendTo($ctlDiv)
+    $sel.attr('id', id + '-vc-sel')
+    $sel.attr('class', 'vc-sel')
+    //$sel.css('flex', '20')
+    $sel.css('width', '100%')
+    $sel.css('padding', '0.2em 0')
+    
+    // var $but = $('<button>').appendTo($ctlDiv)
+    // $but.css('flex', '1')
+    // $but.css('margin-left', '0.5em')
+    // $but.attr('id', id + '-vc-but')
+    // $but.text(config.actionText)
+    // $but.attr('disabled', true)
+    // $but.css('color', 'silver')
+    // $but.css('display', 'none')
+
+    // Populate the select
+    d3.csv('libraries/brcvis/irecord/vc/vcs.csv').then(function(data){
+      // Sort the VCs and remove any undesired (e.g. Yorkshire)
+      var vcs = data.filter(function(d){return d.name !== 'Yorkshire' && d.name !== 'Channel Isles'}).sort(function(a,b) {
+        
+        if (a.code.substr(0,1) === 'H' && b.code.substr(0,1) === 'H') {
+          return order(Number(a.code.substr(1)), Number(b.code.substr(1)))
+        } else if (a.code.substr(0,1) !== 'H' && b.code.substr(0,1) !== 'H') {
+          return order(Number(a.code), Number(b.code))
+        } else if (a.code.substr(0,1) === 'H') {
+          return 1
+        } else {
+          return -1
+        }
+
+        function order(an, bn) {
+          if (an > bn) {
+            return 1
+          }
+          if (bn > an) {
+            return -1
+          }
+          return 0
+        }
+      })
+      var $opt = $('<option selected hidden>').appendTo($sel)
+      $opt.text('Select a Vice County')
+      $opt.attr('value', 0)
+      $sel.css('color', 'silver')
+      vcs.forEach(function(vc){
+        var $opt = $('<option>').appendTo($sel)
+        $opt.text(vc.name + ' (' + vc.code + ')')
+        $opt.attr('value', vc.id)
+        $opt.attr('data-vc-code', vc.code)
+        $opt.css('color', 'black')
+      })
+    })
+    $sel.on('change', function() {
+      if ($sel.val()) {
+        $sel.css('color', 'black')
+        // $but.css('color', 'black')
+        // $but.attr('disabled', false)
+      }
+      vcDropDownAndActionFns.forEach(function(fn){
+        fn(id)
+      })
+    })
+    
+    // // Add action button
+    // $but.click(function() {
+    //   vcDropDownAndActionFns.forEach(function(fn){
+    //     fn(id)
+    //   })
+    // })
+  }
+  fns.onVcDropDownAndActionClick = function(fn) {
+    vcDropDownAndActionFns.push(fn)
+  }
+  fns.getVcDropDownAndAction = function(config) {
+    // Get any controls associated with the block that
+    // owns this config.
+    var ctls = fns.getConfigOpt(config, 'ctls', '')
+    if (ctls) {
+      ctls = ctls.split(' ')
+    } else {
+      ctls = []
+    }
+    // Set variable if controls of passed in class are found.
+    // There could be more than one relevant control,
+    // though it wouldn't makes sense, and we account for that.
+    var vcSelected = {vcId: '', vcName: '', vcCode: ''}
+    ctls.forEach(function(ctl) {
+      if (!vcSelected.vcId) {
+        vcSelected.vcId = $('#' + ctl).find('.vc-sel').first().val()
+        vcSelected.vcName = $('#' + ctl).find('.vc-sel option:selected').first().text()
+        vcSelected.vcCode = $('#' + ctl).find('.vc-sel option:selected').first().attr('data-vc-code')
+      }
+    })
+    return vcSelected
   }
 
   // Control - header and text
@@ -764,6 +1243,30 @@
       }
     })
     return val
+  }
+
+  function setHtml(config, className, html) {
+    // Get any controls associated with the block that
+    // owns this config.
+    var ctls = fns.getConfigOpt(config, 'ctls', '')
+    if (ctls) {
+      ctls = ctls.split(' ')
+    } else {
+      ctls = []
+    }
+    // Set html of 
+    // checked. There could be more than one relevant control,
+    // though it wouldn't makes sense, and we account for that.
+    var set = false
+    ctls.forEach(function(ctl) {
+      if (!set) {
+        var $ctl = $('#' + ctl).find('.' + className).first()
+        if ($ctl.length) {
+          $ctl.html(html)
+        }
+        
+      }
+    })
   }
 
   function getRadioValue(config, className) {
