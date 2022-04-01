@@ -190,7 +190,7 @@
 
       today = dd + '/' + mm + '/' + yyyy
 
-      var text = 'Generated from data downloaded from iRecord on '
+      var text = 'Generated from iRecord on '
       text += today + ' (' + window.location + ').'
 
       var taxaChecked = fns.coindicenceTaxaCheckboxStates(config)
