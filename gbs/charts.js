@@ -343,6 +343,8 @@
 
     var $div = $('<div></div>').appendTo($('#' + id))
 
+    const minYear = config.minYear ? Number(config.minYear) : 1970
+
     // Controls
     var $controls = $('<div class="col-md-5"></div>').appendTo($div)
     $('<h4>Filters</h4>').appendTo($controls)
@@ -368,15 +370,15 @@
 
     $('<span class="input-group-addon">From</span>').appendTo($row2col1Grp)
     var $selStartYear = $('<select class="form-group form-control"></select>').appendTo($row2col1Grp)
-    for (var y = Number(new Date().getFullYear()); y >= 1970; y--) {
-      var selected = y === 1970 ? 'selected' : ''
+    for (var y = Number(new Date().getFullYear()); y >= minYear; y--) {
+      var selected = y === minYear ? 'selected' : ''
       $('<option value="' + y + '" ' + selected + ' >' + y + '</option>').appendTo($selStartYear)
     }
     $selStartYear.click(selectionChanged)
 
     $('<span class="input-group-addon">To</span>').appendTo($row2col2Grp)
     var $selEndYear = $('<select class="form-group form-control"></select>').appendTo($row2col2Grp)
-    for (var y = Number(new Date().getFullYear()); y >= 1970; y--) {
+    for (var y = Number(new Date().getFullYear()); y >= minYear; y--) {
       $('<option value="' + y + '">' + y + '</option>').appendTo($selEndYear)
     }
     $selEndYear.click(selectionChanged)
@@ -389,7 +391,7 @@
     var $clearFilters = $('<button class="form-control btn btn-default">Reset all filters</select>').appendTo($row3)
     $clearFilters.click(function(){
       $selTaxon.val('')
-      $selStartYear.val(1970)
+      $selStartYear.val(minYear)
       $selEndYear.val(Number(new Date().getFullYear()))
       selectionChanged()
     })
