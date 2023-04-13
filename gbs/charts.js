@@ -28,8 +28,10 @@
 
     // Get the data from ES
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
-    $cs.addClass('idc-output')
-    $cs.addClass('idc-output-customScript')
+    //$cs.addClass('idc-output')
+    //$cs.addClass('idc-output-customScript')
+    $cs.addClass('idc-control')
+    $cs.addClass('idc-customScript')
 
     var filters = [
       //
@@ -124,9 +126,10 @@
 
     // Get the data from ES
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
-    $cs.addClass('idc-output')
-    $cs.addClass('idc-output-customScript')
-
+    //$cs.addClass('idc-output')
+    //$cs.addClass('idc-output-customScript')
+    $cs.addClass('idc-control')
+    $cs.addClass('idc-customScript')
 
     var filters = [
       {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"}
@@ -208,8 +211,10 @@
 
     // Get the data from ES
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
-    $cs.addClass('idc-output')
-    $cs.addClass('idc-output-customScript')
+    //$cs.addClass('idc-output')
+    //$cs.addClass('idc-output-customScript')
+    $cs.addClass('idc-control')
+    $cs.addClass('idc-customScript')
 
     var filters = [
       {"query_type": "match_phrase","field": "taxon.group","value": "insect - butterfly"}
@@ -427,8 +432,10 @@
 
     // Get the data from ES
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
-    $cs.addClass('idc-output')
-    $cs.addClass('idc-output-customScript')
+    //$cs.addClass('idc-output')
+    //$cs.addClass('idc-output-customScript')
+    $cs.addClass('idc-control')
+    $cs.addClass('idc-customScript')
 
     if (!indiciaData.esSources) {
       indiciaData.esSources = []
