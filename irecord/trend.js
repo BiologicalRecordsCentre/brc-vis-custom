@@ -78,8 +78,8 @@
         // because if they are added for a source that doesn't
         // get added to indiciaData.esSources, then hooking up
         // the data sources in the BRC vis module JS fails.
-        $cs1.addClass('idc-output')
-        $cs1.addClass('idc-output-customScript')
+        $cs1.addClass('idc-control')
+        $cs1.addClass('idc-customScript')
         var source1 = {}
         source1["source-" + id + "-group"] = ''
         $cs1.idcCustomScript({
@@ -117,8 +117,8 @@
         // because if they are added for a source that doesn't
         // get added to indiciaData.esSources, then hooking up
         // the data sources in the BRC vis module JS fails.
-        $cs2.addClass('idc-output')
-        $cs2.addClass('idc-output-customScript')
+        $cs2.addClass('idc-control')
+        $cs2.addClass('idc-customScript')
         var source2 = {}
         source2["source-" + id + "-taxon"] = ''
         $cs2.idcCustomScript({
@@ -161,8 +161,8 @@
       // selector action buttons cause other JS code to execute
       // ES queries, but not this one, then these classes will
       // mess up the hooking up of those data sources.
-      $cs1.removeClass('idc-output')
-      $cs1.removeClass('idc-output-customScript')
+      $cs1.removeClass('idc-control')
+      $cs1.removeClass('idc-customScript')
 
       // Update control text
       $('#' + config.ctls + '-group-display').html('<b>' + selectedGroup + '</b> selected')
@@ -217,8 +217,8 @@
       // selector action buttons cause other JS code to execute
       // ES queries, but not this one, then these classes will
       // mess up the hooking up of those data sources.
-      $cs2.removeClass('idc-output')
-      $cs2.removeClass('idc-output-customScript')
+      $cs2.removeClass('idc-control')
+      $cs2.removeClass('idc-customScript')
 
       $busy.hide()
     }

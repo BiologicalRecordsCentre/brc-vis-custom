@@ -170,7 +170,7 @@
       })
     }
 
-    // Set up div for ES idc-output and idc-output-customScript
+    // Set up div for ES idc-control and idc-customScript
     var $cs = $('<div id="' + id + '-cs-div"></div>').appendTo($('#' + id))
     var $cs2 = $('<div id="' + id + '-cs-div-2"></div>').appendTo($('#' + id))
 
@@ -218,8 +218,8 @@
         // because if they are added for a source that doesn't
         // get added to indiciaData.esSources, then hooking up
         // the data sources in the BRC vis module JS fails.
-        $cs.addClass('idc-output')
-        $cs.addClass('idc-output-customScript')
+        $cs.addClass('idc-control')
+        $cs.addClass('idc-customScript')
         var source = {}
         source["source-" + id] = ''
         $cs.idcCustomScript({
@@ -258,8 +258,8 @@
         // because if they are added for a source that doesn't
         // get added to indiciaData.esSources, then hooking up
         // the data sources in the BRC vis module JS fails.
-        $cs2.addClass('idc-output')
-        $cs2.addClass('idc-output-customScript')
+        $cs2.addClass('idc-control')
+        $cs2.addClass('idc-customScript')
         var source = {}
         source["source-2-" + id] = ''
         $cs2.idcCustomScript({
@@ -279,11 +279,11 @@
       // ES queries, but not this one, then these classes will
       // mess up the hooking up of those data sources.
       if (sourceSettings.id === 'source-brc-hectad') {
-        $cs.removeClass('idc-output')
-        $cs.removeClass('idc-output-customScript')
+        $cs.removeClass('idc-control')
+        $cs.removeClass('idc-customScript')
       } else {
-        $cs2.removeClass('idc-output')
-        $cs2.removeClass('idc-output-customScript')
+        $cs2.removeClass('idc-control')
+        $cs2.removeClass('idc-customScript')
       }
     
       // We'll process info from 

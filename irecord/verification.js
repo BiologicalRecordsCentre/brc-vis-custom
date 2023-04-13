@@ -161,8 +161,8 @@
         // because if they are added for a source that doesn't
         // get added to indiciaData.esSources, then hooking up
         // the data sources in the BRC vis module JS fails.
-        $cs.addClass('idc-output')
-        $cs.addClass('idc-output-customScript')
+        $cs.addClass('idc-control')
+        $cs.addClass('idc-customScript')
         var source = {}
         source["source-" + id] = ''
         $cs.idcCustomScript({
@@ -183,8 +183,8 @@
       // ES queries, but not this one, then these classes will
       // mess up the hooking up of those data sources.
 
-      $cs.removeClass('idc-output')
-      $cs.removeClass('idc-output-customScript')
+      $cs.removeClass('idc-control')
+      $cs.removeClass('idc-customScript')
 
       dataResponse = response.aggregations._rows.buckets
 

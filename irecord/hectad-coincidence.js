@@ -2,6 +2,8 @@
 
   fns.hectadCoincidence = function(id, config) {
 
+    console.log("hectadCoincidence")
+
     var $div = fns.topDivConfig(config)
     $div.appendTo($('#' + id))
 
@@ -228,7 +230,7 @@
       return info
     } 
 
-    // Set up div for ES idc-output and idc-output-customScript
+    // Set up div for ES idc-control and idc-customScript
     var cs = []
     cs[0] = $('<div id="' + id + '-cs1-div"></div>').appendTo($('#' + id))
     cs[1] = $('<div id="' + id + '-cs2-div"></div>').appendTo($('#' + id))
@@ -291,8 +293,8 @@
         // get added to indiciaData.esSources, then hooking up
         // the data sources in the BRC vis module JS fails.
         var $cs = cs[iTaxon-1]
-        $cs.addClass('idc-output')
-        $cs.addClass('idc-output-customScript')
+        $cs.addClass('idc-control')
+        $cs.addClass('idc-customScript')
         var source = {}
         source["source-" + iTaxon + '-' + id] = ''
         $cs.idcCustomScript({
@@ -316,8 +318,8 @@
       // ES queries, but not this one, then these classes will
       // mess up the hooking up of those data sources.
       var $cs = cs[iTaxon-1]
-      $cs.removeClass('idc-output')
-      $cs.removeClass('idc-output-customScript')
+      $cs.removeClass('idc-control')
+      $cs.removeClass('idc-customScript')
 
       hectadData[iTaxon-1] = response.aggregations._rows.buckets.filter(function(h){return h.key['location-grid_square-10km-centre']}).map(function(h) {
         var latlon = h.key['location-grid_square-10km-centre'].split(' ')
