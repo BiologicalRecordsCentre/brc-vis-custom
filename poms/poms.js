@@ -1,27 +1,7 @@
-(function($, fns, data, config) {
+(function($, fns, repdata) {
 
-  // Updated 23/02/2022 to work with both content type and blocks
-  // console.log("PoMS library loaded")
+  console.log("PoMS custom lib loading")
 
-  var idg
-  
-  fns.pomsBlock = function(id) {
-    // set global idg variable
-    idg = id
-  }
-
-  $(document).ready(function () {
-
-    var chartid = idg ? idg : 'brc-vis-content'
-    var chartdata = idg ? data[idg] : data
-    var repdataAll = JSON.parse(chartdata)
-
-    console.log(repdataAll)
-
-    // Call pomsSelectFlower using the first named report
-    pomsSelectFlower(repdataAll[Object.keys(repdataAll)[0]] ,'#' + chartid)
-  })
-  
   // Declare stuff useful to more than one data formatting function
   var chartDataAll = [
     {
@@ -153,15 +133,16 @@
     },
   ]
 
-  function getConfigOpt(opt, defaultVal) {
-    
-    var chartConfig = idg ? config[idg] : config
-    //return drupalSettings.brc_vis.config[opt] ? drupalSettings.brc_vis.config[opt] : defaultVal
-    return chartConfig[opt] ? chartConfig[opt] : defaultVal
-  }
+  function formatDataBySample(data) {
 
-  function formatDataBySample(repdata) {
+    // data is an object string defining a JSON objects
+    // with report data keyed by report name.
+    // In our case there is only one report.
+    var repdataJson = JSON.parse(data)
+    var repdata = repdataJson[Object.keys(repdataJson)[0]]
+
     var dataBySample={}
+
     repdata.forEach(function(d){
       var grp = d.taxon
 
@@ -169,8 +150,8 @@
         dataBySample[d.sample] = {
           flower: d.flower
         }
-      } 
-      
+      }
+
       if (dataBySample[d.sample][grp]) {
         dataBySample[d.sample][grp] = dataBySample[d.sample][grp] + Number(d.pomscount)
       } else {
@@ -187,7 +168,7 @@
       // Flower
       if (flowers.indexOf(d.flower) === -1) {
         flowers.push(d.flower)
-      } 
+      }
     })
     return flowers
   }
@@ -206,7 +187,7 @@
         }
       })
     })
-    
+
     // Create the chart data
     var chartData = chartDataAll.filter(cd => groups.indexOf(cd.name) !== -1)
     chartData.forEach(cd => {
@@ -234,7 +215,7 @@
     html = html + ' - an average of <b>' + Math.round(chartData.reduce((total, cd) => total + cd.number, 0))
     html = html + ' insects per sample.'
     titleDiv.html(html)
-    
+
     // Generate the chart
     brccharts.pie({
       selector: chartDivId,
@@ -259,7 +240,7 @@
         }
       })
     })
-    
+
     // Create the chart data
     var chartData = chartDataAll.filter(cd => groups.indexOf(cd.name) !== -1)
     chartData.forEach(cd => {
@@ -284,7 +265,7 @@
     var samples = chartData.samples
     var mean = Math.round(chartData.data.reduce((total, cd) => total + cd.number, 0))
 
-    var html = getConfigOpt('titleTemplate', '')
+    var html = drupalSettings.brc_vis.config.titleTemplate
 
     html = html ? html : 'No title specified with <b>titleTemplate</b> option.'
     html = html.replace('##plant##', flower)
@@ -296,26 +277,24 @@
     return html
   }
 
-  function pomsByFlower (repdata, selector){
+  fns.pomsByFlower = function(config){
 
     var data = formatDataBySample(repdata)
     var flowers = flowersFromData(data)
-    
+
     flowers.forEach((f, i) => {
       // Create a new div for chart and title
-      var parentDiv = d3.select(selector).append('div')
+      var parentDiv = d3.select('#brc-vis-content').append('div')
       var titleDiv = parentDiv.append('div')
 
-      titleDiv.style('font-size', getConfigOpt('titleFontSize', '1.3em'))
-      titleDiv.style('line-height', getConfigOpt('titleLineHeight', '1em'))
-      titleDiv.style('margin-bottom', getConfigOpt('titleMarginBottom', '0.5em'))
+      titleDiv.style('font-size',  config['titleFontSize'] ? config['titleFontSize'] : '1.3em')
+      titleDiv.style('line-height', config['titleLineHeight'] ? config['titleLineHeight'] : '1em')
+      titleDiv.style('margin-bottom', config['titleMarginBottom'] ? config['titleMarginBottom'] : '0.5em')
 
       var div = parentDiv.append('div')
       div.attr('id', 'brcvis-flower-' + i)
       div.style('max-width', '600px')
       div.style('margin-bottom', '1em')
-
-      //chartForFlower(data, f, titleDiv, '#brcvis-flower-' + i)
 
       // Get data formatted for chart (and sample number)
       var chartData = chartDataForFlower(data, f)
@@ -327,8 +306,8 @@
       brccharts.pie({
         selector: '#brcvis-flower-' + i,
         innerRadius: 100,
-        legendWidth: getConfigOpt('legendWidth', 200),
-        labelFontSize: getConfigOpt('labelFontSize', 14),
+        legendWidth: config['legendWidth'] ? config['legendWidth'] : 200,
+        labelFontSize: config['labelFontSize'] ? config['labelFontSize'] : 14,
         radius: 200,
         data: chartData.data,
         expand: true
@@ -336,21 +315,22 @@
     })
   }
 
-  function pomsSelectFlower(repdata, selector){
+  fns.pomsSelectFlower = function(config){
 
+    console.log('poms select flower')
     var data = formatDataBySample(repdata)
 
     // Create select, chart and title html elements
-    var parentDiv = d3.select(selector).append('div')
+    var parentDiv = d3.select('#brc-vis-content').append('div')
 
     var input = parentDiv.append('select')
     input.style('margin-bottom', '1em')
     input.attr('id', 'poms-flower-select')
 
     var titleDiv = parentDiv.append('div')
-    titleDiv.style('font-size', getConfigOpt('titleFontSize', '1.3em'))
-    titleDiv.style('line-height', getConfigOpt('titleLineHeight', '1em'))
-    titleDiv.style('margin-bottom', getConfigOpt('titleMarginBottom', '0.5em'))
+    titleDiv.style('font-size',  config['titleFontSize'] ? config['titleFontSize'] : '1.3em')
+    titleDiv.style('line-height', config['titleLineHeight'] ? config['titleLineHeight'] : '1em')
+    titleDiv.style('margin-bottom', config['titleMarginBottom'] ? config['titleMarginBottom'] : '0.5em')
 
     var div = parentDiv.append('div')
     div.attr('id', 'brcvis-flower-interactive')
@@ -360,7 +340,8 @@
     // Populate the dropdown list
     flowersAll.forEach((f,i) => {
       const opt = input.append('option')
-      opt.attr('value', f.name).text(getConfigOpt('shortDropdownNames', '') === 'true' ? f.short : f.name)
+      const shortDropdownNames = config['shortDropdownNames'] ? config['shortDropdownNames'] : 'false'
+      opt.attr('value', f.name).text(shortDropdownNames === 'true' ? f.short : f.name)
       if (i === 0) {
         opt.property('selected', true)
       }
@@ -377,10 +358,10 @@
       titleDiv.html(chartTitleForFlower(f, chartData))
 
       // Reset chart data
-      chart.setChartOpts({data: chartData.data}) 
+      chart.setChartOpts({data: chartData.data})
     })
 
-    
+
     // Get initial data and set caption
     var f = d3.select('#poms-flower-select').property('value')
     var chartData = chartDataForFlower(data, f)
@@ -391,11 +372,11 @@
     var chart = brccharts.pie({
       selector: '#brcvis-flower-interactive',
       innerRadius: 100,
-      legendWidth: getConfigOpt('legendWidth', 200),
-      labelFontSize: getConfigOpt('labelFontSize', 14),
+      legendWidth: config['legendWidth'] ? config['legendWidth'] : 200,
+      labelFontSize: config['labelFontSize'] ? config['labelFontSize'] : 14,
       radius: 200,
       data: chartData.data,
       expand: true
     })
   }
-})(jQuery, drupalSettings.brc_vis.fns, drupalSettings.brc_vis.data, drupalSettings.brc_vis.config)
+})(jQuery, drupalSettings.brc_vis.fns, drupalSettings.brc_vis.data)
